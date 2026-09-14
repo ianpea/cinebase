@@ -1,0 +1,141 @@
+syntax = "proto3";
+
+package cinebase.person.v1;
+
+option java_multiple_files = true;
+option java_package = "com.cinebase.person.v1";
+option java_outer_classname = "PersonServiceProto";
+
+// person-service owns people and movie-role (cast/creator) data.
+// movie-service calls this service over gRPC; the frontend never calls it directly.
+service PersonService {
+  // People
+  rpc GetPerson(GetPersonRequest) returns (PersonMessage);
+  rpc SearchPeople(SearchPeopleRequest) returns (SearchPeopleResponse);
+  rpc CreatePerson(CreatePersonRequest) returns (PersonMessage);
+  rpc UpdatePerson(UpdatePersonRequest) returns (PersonMessage);
+  rpc DeletePerson(DeletePersonRequest) returns (DeletePersonResponse);
+
+  // Roles for a movie (cast + creators) — primary read path for movie detail.
+  rpc GetPeopleForMovie(GetPeopleForMovieRequest) returns (GetPeopleForMovieResponse);
+
+  // Cast
+  rpc AddCastMember(AddCastMemberRequest) returns (CastMemberMessage);
+  rpc UpdateCastMember(UpdateCastMemberRequest) returns (CastMemberMessage);
+  rpc RemoveCastMember(RemoveCastMemberRequest) returns (RemoveCastMemberResponse);
+
+  // Creators
+  rpc AddCreator(AddCreatorRequest) returns (CreatorMessage);
+  rpc UpdateCreator(UpdateCreatorRequest) returns (CreatorMessage);
+  rpc RemoveCreator(RemoveCreatorRequest) returns (RemoveCreatorResponse);
+}
+
+message PersonMessage {
+  int64 id = 1;
+  string name = 2;
+  string biography = 3;
+  string birth_date = 4; // ISO yyyy-MM-dd, empty when unset
+  string created_at = 5; // ISO-8601 instant
+  string updated_at = 6; // ISO-8601 instant
+}
+
+message CastMemberMessage {
+  int64 id = 1;
+  int64 movie_id = 2;
+  PersonMessage person = 3;
+  string character_name = 4;
+}
+
+message CreatorMessage {
+  int64 id = 1;
+  int64 movie_id = 2;
+  PersonMessage person = 3;
+  string job = 4;
+}
+
+// --- People RPC messages ---
+
+message GetPersonRequest {
+  int64 id = 1;
+}
+
+message SearchPeopleRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 size = 3;
+}
+
+message SearchPeopleResponse {
+  repeated PersonMessage people = 1;
+  int64 total = 2;
+}
+
+message CreatePersonRequest {
+  string name = 1;
+  string biography = 2;
+  string birth_date = 3;
+}
+
+message UpdatePersonRequest {
+  int64 id = 1;
+  string name = 2;
+  string biography = 3;
+  string birth_date = 4;
+}
+
+message DeletePersonRequest {
+  int64 id = 1;
+}
+
+message DeletePersonResponse {
+  bool deleted = 1;
+}
+
+// --- Role RPC messages ---
+
+message GetPeopleForMovieRequest {
+  int64 movie_id = 1;
+}
+
+message GetPeopleForMovieResponse {
+  repeated CastMemberMessage cast = 1;
+  repeated CreatorMessage creators = 2;
+}
+
+message AddCastMemberRequest {
+  int64 movie_id = 1;
+  int64 person_id = 2;
+  string character_name = 3;
+}
+
+message UpdateCastMemberRequest {
+  int64 id = 1;
+  string character_name = 2;
+}
+
+message RemoveCastMemberRequest {
+  int64 id = 1;
+}
+
+message RemoveCastMemberResponse {
+  bool removed = 1;
+}
+
+message AddCreatorRequest {
+  int64 movie_id = 1;
+  int64 person_id = 2;
+  string job = 3;
+}
+
+message UpdateCreatorRequest {
+  int64 id = 1;
+  string job = 2;
+}
+
+message RemoveCreatorRequest {
+  int64 id = 1;
+}
+
+message RemoveCreatorResponse {
+  bool removed = 1;
+}

@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: person-service
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/person_service}
+    username: ${DB_USERNAME:cinebase}
+    password: ${DB_PASSWORD:cinebase}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+server:
+  port: 8082
