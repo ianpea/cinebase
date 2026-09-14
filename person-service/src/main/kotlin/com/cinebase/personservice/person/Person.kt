@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 import java.time.LocalDate
 
@@ -19,7 +21,7 @@ class Person(
     @Column(nullable = false)
     var name: String,
 
-    @Column(columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.LONG32VARCHAR)
     var biography: String? = null,
 
     @Column(name = "birth_date")

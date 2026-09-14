@@ -6,6 +6,8 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.Instant
 
 @Entity
@@ -18,7 +20,7 @@ class Movie(
     @Column(nullable = false)
     var title: String,
 
-    @Column(columnDefinition = "TEXT")
+    @JdbcTypeCode(SqlTypes.LONG32VARCHAR)
     var synopsis: String? = null,
 
     @Column(name = "release_year")

@@ -22,6 +22,9 @@ class PersonService(private val people: PersonRepository) {
     fun get(id: Long): Person =
         people.findById(id).orElseThrow { NoSuchElementException("Person $id not found") }
 
+    fun findAll(ids: Collection<Long>): Map<Long, Person> =
+        if (ids.isEmpty()) emptyMap() else people.findAllById(ids).associateBy { it.id }
+
     @Transactional
     fun create(name: String, biography: String?, birthDate: LocalDate?): Person =
         people.save(Person(name = name.trim(), biography = biography?.trim(), birthDate = birthDate))
