@@ -27,6 +27,8 @@ import com.cinebase.personservice.creator.CreatorService
 import com.cinebase.personservice.creator.MovieCreator
 import com.cinebase.personservice.person.Person
 import com.cinebase.personservice.person.PersonService
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
 import io.grpc.stub.StreamObserver
 import org.springframework.stereotype.Service
 import java.time.LocalDate
@@ -141,8 +143,19 @@ private inline fun <T> StreamObserver<T>.respond(block: () -> T) {
         onNext(block())
         onCompleted()
     } catch (e: Exception) {
-        onError(e)
+        onError(e.toStatusRuntimeException())
     }
+}
+
+/**
+ * Maps domain failures onto canonical gRPC statuses so the movie-service client can translate them
+ * into the right GraphQL error type (NOT_FOUND vs BAD_REQUEST vs INTERNAL).
+ */
+private fun Exception.toStatusRuntimeException(): StatusRuntimeException = when (this) {
+    is DateTimeParseException -> Status.INVALID_ARGUMENT.withDescription(message).withCause(this).asRuntimeException()
+    is NoSuchElementException -> Status.NOT_FOUND.withDescription(message).withCause(this).asRuntimeException()
+    is IllegalArgumentException -> Status.INVALID_ARGUMENT.withDescription(message).withCause(this).asRuntimeException()
+    else -> Status.INTERNAL.withDescription(message).withCause(this).asRuntimeException()
 }
 
 private fun String.blankToNull(): String? = if (isBlank()) null else this

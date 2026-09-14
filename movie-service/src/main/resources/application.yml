@@ -22,5 +22,11 @@ spring:
 server:
   port: 8081
 
+# The GraphQL SDL already declares `scalar Upload`, so the library must not add its own copy.
+multipart:
+  springboot:
+    patch-schema:
+      enabled: false
+
 app:
   uploads-dir: ${UPLOADS_DIR:uploads}

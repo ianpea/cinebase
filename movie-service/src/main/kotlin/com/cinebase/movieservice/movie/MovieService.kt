@@ -1,8 +1,10 @@
 package com.cinebase.movieservice.movie
 
 import com.cinebase.movieservice.artwork.ArtworkRepository
+import com.cinebase.movieservice.config.UploadStorage
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -11,10 +13,11 @@ import java.time.Instant
 class MovieService(
     private val movies: MovieRepository,
     private val artworks: ArtworkRepository,
+    private val storage: UploadStorage,
 ) {
 
-    fun list(search: String?, page: Int, size: Int): Page<Movie> {
-        val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, 100))
+    fun list(search: String?, sort: Sort, page: Int, size: Int): Page<Movie> {
+        val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, 100), sort)
         return if (search.isNullOrBlank()) {
             movies.findAll(pageable)
         } else {
@@ -52,8 +55,20 @@ class MovieService(
     @Transactional
     fun delete(id: Long) {
         val movie = get(id)
+        // Remove artwork files from disk before dropping their rows.
+        artworks.findByMovieIdOrderById(id).forEach { storage.deleteByUrl(it.url) }
         artworks.deleteByMovieId(id)
         movies.delete(movie)
+    }
+
+    /** Keeps the denormalised cover `artworkUrl` in sync with the movie's first artwork. */
+    @Transactional
+    fun updateCoverArtwork(id: Long, url: String?) {
+        find(id)?.let { movie ->
+            movie.artworkUrl = url
+            movie.updatedAt = Instant.now()
+            movies.save(movie)
+        }
     }
 
     fun search(query: String, limit: Int = 20): List<Movie> =

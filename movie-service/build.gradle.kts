@@ -30,6 +30,9 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-grpc-client")
 
+    // Spring GraphQL does not support the graphql-multipart-request-spec itself; this library adds it.
+    implementation("name.nkonev.multipart-spring-graphql:multipart-spring-graphql:2.1.0")
+
     implementation("tools.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 

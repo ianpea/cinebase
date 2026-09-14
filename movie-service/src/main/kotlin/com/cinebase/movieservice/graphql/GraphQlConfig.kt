@@ -22,7 +22,9 @@ import java.util.Locale
  *
  * - [dateTimeScalar] maps to [Instant] (used by `createdAt` / `updatedAt`).
  * - [dateScalar] maps to [LocalDate] (used by `birthDate`).
- * - [uploadScalar] is an input-only pass-through for multipart file uploads.
+ *
+ * The `Upload` scalar is left to `multipart-spring-graphql`, which registers a WebMVC coercing
+ * that turns a multipart file part into a `MultipartFile` controller argument.
  */
 @Configuration
 class GraphQlConfig {
@@ -31,7 +33,6 @@ class GraphQlConfig {
     fun runtimeWiringConfigurer(): RuntimeWiringConfigurer = RuntimeWiringConfigurer { builder ->
         builder.scalar(dateTimeScalar)
         builder.scalar(dateScalar)
-        builder.scalar(uploadScalar)
     }
 
     companion object {
@@ -101,24 +102,6 @@ class GraphQlConfig {
                         throw CoercingParseLiteralException("Invalid Date: $value")
                     }
                 }
-            })
-            .build()
-
-        val uploadScalar: GraphQLScalarType = GraphQLScalarType.newScalar()
-            .name("Upload")
-            .description("Binary file upload (input only)")
-            .coercing(object : Coercing<Any, Any> {
-                override fun serialize(input: Any, graphQLContext: GraphQLContext, locale: Locale): Any =
-                    throw CoercingSerializeException("Upload is an input-only scalar")
-
-                override fun parseValue(input: Any, graphQLContext: GraphQLContext, locale: Locale): Any = input
-
-                override fun parseLiteral(
-                    input: Value<*>,
-                    variables: CoercedVariables,
-                    graphQLContext: GraphQLContext,
-                    locale: Locale,
-                ): Any = throw CoercingParseLiteralException("Upload cannot be a literal")
             })
             .build()
     }
