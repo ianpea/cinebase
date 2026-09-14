@@ -24,6 +24,11 @@ export default defineConfig({
 			'/graphql': {
 				target: 'http://localhost:8081',
 				changeOrigin: true
+			},
+			// Artwork files are served by movie-service from its uploads directory.
+			'/uploads': {
+				target: 'http://localhost:8081',
+				changeOrigin: true
 			}
 		}
 	}
