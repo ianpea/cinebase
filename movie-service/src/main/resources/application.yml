@@ -15,9 +15,9 @@ spring:
       max-request-size: 10MB
   grpc:
     client:
-      channels:
+      channel:
         person:
-          address: ${GRPC_HOST:localhost}:${GRPC_PORT:9090}
+          target: ${GRPC_HOST:localhost}:${GRPC_PORT:9090}
 
 server:
   port: 8081

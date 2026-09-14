@@ -25,6 +25,8 @@ class MovieService(
     fun get(id: Long): Movie =
         movies.findById(id).orElseThrow { NoSuchElementException("Movie $id not found") }
 
+    fun find(id: Long): Movie? = movies.findById(id).orElse(null)
+
     @Transactional
     fun create(title: String, synopsis: String?, releaseYear: Int?, genre: String?): Movie {
         val movie = Movie(
