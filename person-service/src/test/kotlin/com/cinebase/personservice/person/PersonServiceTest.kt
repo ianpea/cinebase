@@ -1,9 +1,12 @@
 package com.cinebase.personservice.person
 
+import com.cinebase.personservice.cast.MovieCastRepository
+import com.cinebase.personservice.creator.MovieCreatorRepository
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import io.mockk.verifyOrder
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -21,15 +24,18 @@ import java.util.Optional
  * Domain rules of [PersonService] in isolation.
  *
  * Only behaviour that lives *in the service* is asserted here: trimming, the existence checks, the
- * pagination clamp and the blank-vs-present search branch. Plain repository delegation (and the
- * end-to-end paths) are covered by `PersonServiceGrpcIntegrationTest`, so they are not repeated.
+ * pagination clamp, the blank-vs-present search branch and the delete order. Plain repository
+ * delegation (and the end-to-end paths) are covered by `PersonServiceGrpcIntegrationTest`, so they
+ * are not repeated.
  */
 class PersonServiceTest {
 
     // relaxedUnitFun so Unit-returning repository methods (delete/deleteAll) need no stubbing.
     private val people = mockk<PersonRepository>(relaxUnitFun = true)
+    private val cast = mockk<MovieCastRepository>()
+    private val creators = mockk<MovieCreatorRepository>()
 
-    private val service = PersonService(people)
+    private val service = PersonService(people, cast, creators)
 
     @BeforeEach
     fun stubSaving() {
@@ -123,12 +129,30 @@ class PersonServiceTest {
     // --- delete ---
 
     @Test
-    fun `delete fails for an unknown person without deleting`() {
+    fun `delete removes the person's roles first and the person last`() {
+        val existing = person()
+        every { people.findById(1L) } returns Optional.of(existing)
+        every { cast.deleteByPersonId(1L) } returns 2
+        every { creators.deleteByPersonId(1L) } returns 1
+
+        service.delete(1L)
+
+        verifyOrder {
+            cast.deleteByPersonId(1L)
+            creators.deleteByPersonId(1L)
+            people.delete(existing)
+        }
+    }
+
+    @Test
+    fun `delete fails for an unknown person without deleting any roles`() {
         every { people.findById(404L) } returns Optional.empty()
 
         val failure = assertThrows<NoSuchElementException> { service.delete(404L) }
 
         assertThat(failure).hasMessage("Person 404 not found")
+        verify(exactly = 0) { cast.deleteByPersonId(any()) }
+        verify(exactly = 0) { creators.deleteByPersonId(any()) }
         verify(exactly = 0) { people.delete(any()) }
     }
 

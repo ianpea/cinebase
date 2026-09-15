@@ -1,5 +1,7 @@
 package com.cinebase.personservice.person
 
+import com.cinebase.personservice.cast.MovieCastRepository
+import com.cinebase.personservice.creator.MovieCreatorRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -8,7 +10,11 @@ import java.time.Instant
 import java.time.LocalDate
 
 @Service
-class PersonService(private val people: PersonRepository) {
+class PersonService(
+    private val people: PersonRepository,
+    private val cast: MovieCastRepository,
+    private val creators: MovieCreatorRepository,
+) {
 
     fun list(search: String?, page: Int, size: Int): Page<Person> {
         val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, 100))
@@ -41,7 +47,10 @@ class PersonService(private val people: PersonRepository) {
 
     @Transactional
     fun delete(id: Long) {
-        people.delete(get(id))
+        val person = get(id)
+        cast.deleteByPersonId(id)
+        creators.deleteByPersonId(id)
+        people.delete(person)
     }
 
     fun search(query: String, limit: Int = 20): List<Person> =

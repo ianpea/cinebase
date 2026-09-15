@@ -7,7 +7,7 @@ A small movie manager: a **SvelteKit** frontend over a single **GraphQL** API, b
 The frontend never talks to `person-service`. Cast and creators are fetched by `movie-service` over
 gRPC, so the two services keep separate databases and never read each other's tables.
 
-The brief is covered end to end: **205 tests pass** (75 `movie-service`, 73 `person-service`,
+The brief is covered end to end: **206 tests pass** (75 `movie-service`, 74 `person-service`,
 57 `frontend`) and `docker compose up --build` brings the whole stack up from a clean state.
 
 ## What it does
@@ -189,7 +189,7 @@ variables are needed locally. If your default JDK is newer than 21, set `JAVA_HO
 ## Tests
 
 ```bash
-cd person-service && ./gradlew test    # 73 tests
+cd person-service && ./gradlew test    # 74 tests
 cd movie-service  && ./gradlew test    # 75 tests
 cd frontend       && npm test          # 57 tests
 cd frontend       && npm run check     # svelte-check
@@ -197,7 +197,7 @@ cd frontend       && npm run check     # svelte-check
 
 | Suite | Coverage |
 | --- | --- |
-| `person-service` | CRUD and edge cases for people, cast and creators; case-insensitive search; proto ↔ domain mapping; gRPC status contract (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`); full gRPC → JPA stack on H2 |
+| `person-service` | CRUD and edge cases for people, cast and creators; case-insensitive search; role cleanup on person deletion; proto ↔ domain mapping; gRPC status contract (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`); full gRPC → JPA stack on H2 |
 | `movie-service` | Movie CRUD, search, pagination clamps, sorting; artwork validation, replacement, removal and cover promotion; upload storage and path-traversal refusals; GraphQL end to end via `GraphQlTester`; gRPC client against an in-process server |
 | `frontend` | Movie card and page rendering, loading/empty/error states, dialog validation and payloads, role dialog search and edit mode, artwork validation, preview and upload progress, SSR loaders |
 
@@ -257,8 +257,6 @@ Kept short and honest — these are deliberate scope decisions, not oversights.
   UI**, which uses the dedicated movie and people search boxes.
 - **Cast and creator lists are not paginated** (a film has few roles), and adding the same person
   twice as cast is allowed.
-- **Deleting a person does not delete their roles.** The roles stay and are skipped when a movie is
-  resolved, rather than cascading a delete across services.
 - **No gRPC retries, timeouts or circuit breaker.** If `person-service` is down, a movie detail query
   returns an error instead of degrading gracefully.
 - **Both databases share one PostgreSQL container.** Separate databases, but separate instances and

@@ -27,7 +27,7 @@ Everything has a working default, so local development needs no environment vari
 
 ```bash
 ./gradlew bootRun     # gRPC on port 9090
-./gradlew test        # 73 tests
+./gradlew test        # 74 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -49,8 +49,15 @@ the `movies` table. Two facts follow from that, and both are deliberate:
 
 - Adding a role for a movie id that does not exist succeeds here; `movie-service` owns the movie and
   is the only place that can reject it.
-- Deleting a person does not delete their roles. The roles stay and are skipped when a movie's cast
-  is resolved, rather than cascading a delete across a service boundary.
+- Deleting a person deletes their roles too. Every table involved belongs to this service's
+  database, so the cleanup happens here, in one transaction, and never crosses a service boundary.
+
+### Deleting a person
+
+`DeletePerson` removes the person's `movie_cast` rows, then their `movie_creator` rows, then the
+`people` row — three statements in one transaction. The two role deletes are bulk deletes by
+`person_id`, so roles are never loaded into memory just to be removed. Because the statements share
+the transaction, a person row can never commit while roles still point at it.
 
 ## gRPC
 
@@ -72,16 +79,16 @@ consistent error to the user.
 ## Tests
 
 ```bash
-./gradlew test        # 73 tests, 5 classes
+./gradlew test        # 74 tests, 5 classes
 ```
 
 | File | Tests | Focus |
 | --- | --- | --- |
-| `person/PersonServiceTest` | 18 | create/trim, update, delete, pagination clamps, search limits |
+| `person/PersonServiceTest` | 19 | create/trim, update, delete order, pagination clamps, search limits |
 | `cast/CastServiceTest` | 7 | add, update character name, remove, missing person |
 | `creator/CreatorServiceTest` | 6 | add, update job, remove, missing person |
 | `grpc/PersonGrpcServiceTest` | 17 | proto ↔ domain mapping, batched lookup, and the full gRPC status contract |
-| `PersonServiceGrpcIntegrationTest` | 25 | real gRPC server + H2: person CRUD, case-insensitive search, role add/update/remove, not-found wiring, per-movie role isolation |
+| `PersonServiceGrpcIntegrationTest` | 25 | real gRPC server + H2: person CRUD, case-insensitive search, role add/update/remove, not-found wiring, role cleanup on person deletion, per-movie role isolation |
 
 Two layers of gRPC testing are used on purpose: an in-process server with mocked services for the
 mapping and status contract, and a Spring Boot test against the real server and database for the

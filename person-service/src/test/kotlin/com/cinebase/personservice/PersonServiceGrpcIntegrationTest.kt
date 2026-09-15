@@ -13,6 +13,8 @@ import com.cinebase.person.v1.SearchPeopleRequest
 import com.cinebase.person.v1.UpdateCastMemberRequest
 import com.cinebase.person.v1.UpdateCreatorRequest
 import com.cinebase.person.v1.UpdatePersonRequest
+import com.cinebase.personservice.cast.MovieCastRepository
+import com.cinebase.personservice.creator.MovieCreatorRepository
 import com.cinebase.personservice.person.PersonService
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
@@ -40,6 +42,8 @@ import java.util.concurrent.atomic.AtomicLong
 class PersonServiceGrpcIntegrationTest @Autowired constructor(
     private val lifecycle: GrpcServerLifecycle,
     private val people: PersonService,
+    private val cast: MovieCastRepository,
+    private val creators: MovieCreatorRepository,
 ) {
 
     private lateinit var channel: ManagedChannel
@@ -47,6 +51,20 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
 
     /** Each test works on its own movie so roles from other tests cannot leak in. */
     private fun nextMovieId(): Long = movies.incrementAndGet()
+
+    private fun castRole(movieId: Long, personId: Long, characterName: String) =
+        stub.addCastMember(
+            AddCastMemberRequest.newBuilder()
+                .setMovieId(movieId)
+                .setPersonId(personId)
+                .setCharacterName(characterName)
+                .build(),
+        )
+
+    private fun creatorRole(movieId: Long, personId: Long, job: String) =
+        stub.addCreator(
+            AddCreatorRequest.newBuilder().setMovieId(movieId).setPersonId(personId).setJob(job).build(),
+        )
 
     @BeforeEach
     fun connect() {
@@ -387,20 +405,35 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
     }
 
     @Test
-    fun `getPeopleForMovie skips a role whose person was deleted`() {
-        val movieId = nextMovieId()
-        val actor = people.create("Soon Deleted", null, null)
-        stub.addCastMember(
-            AddCastMemberRequest.newBuilder().setMovieId(movieId).setPersonId(actor.id)
-                .setCharacterName("Ghost").build(),
-        )
+    fun `deletePerson removes the person together with every role that points at them`() {
+        val sharedMovie = nextMovieId()
+        val otherMovie = nextMovieId()
+        val leaving = people.create("Leaving Person", null, null)
+        val staying = people.create("Staying Person", null, null)
 
-        stub.deletePerson(DeletePersonRequest.newBuilder().setId(actor.id).build())
+        castRole(sharedMovie, leaving.id, "Ghost")
+        creatorRole(sharedMovie, leaving.id, "Director")
+        castRole(otherMovie, leaving.id, "Hologram")
+        creatorRole(otherMovie, leaving.id, "Producer")
+        castRole(sharedMovie, staying.id, "Survivor")
+        creatorRole(sharedMovie, staying.id, "Composer")
 
-        val response = stub.getPeopleForMovie(GetPeopleForMovieRequest.newBuilder().setMovieId(movieId).build())
+        val response = stub.deletePerson(DeletePersonRequest.newBuilder().setId(leaving.id).build())
 
-        // The role row survives, but it is dropped from the response because its person is gone.
-        assertThat(response.castList).isEmpty()
+        assertThat(response.deleted).isTrue()
+
+        assertThat(cast.findByMovieIdOrderById(otherMovie)).isEmpty()
+        assertThat(creators.findByMovieIdOrderById(otherMovie)).isEmpty()
+
+        assertThat(cast.findByMovieIdOrderById(sharedMovie).map { it.personId }).containsExactly(staying.id)
+        assertThat(cast.findByMovieIdOrderById(sharedMovie).map { it.characterName }).containsExactly("Survivor")
+        assertThat(creators.findByMovieIdOrderById(sharedMovie).map { it.personId }).containsExactly(staying.id)
+        assertThat(creators.findByMovieIdOrderById(sharedMovie).map { it.job }).containsExactly("Composer")
+
+        assertThat(people.findAll(listOf(leaving.id))).isEmpty()
+        val movie = stub.getPeopleForMovie(GetPeopleForMovieRequest.newBuilder().setMovieId(sharedMovie).build())
+        assertThat(movie.castList.map { it.person.name }).containsExactly("Staying Person")
+        assertThat(movie.creatorsList.map { it.person.name }).containsExactly("Staying Person")
     }
 
     @Test

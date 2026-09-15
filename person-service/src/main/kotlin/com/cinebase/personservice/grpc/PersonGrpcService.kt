@@ -86,10 +86,10 @@ class PersonGrpcService(
 
             GetPeopleForMovieResponse.newBuilder().apply {
                 castMembers.forEach { member ->
-                    peopleById[member.personId]?.let { addCast(member.toMessage(it)) }
+                    addCast(member.toMessage(peopleById.getValue(member.personId)))
                 }
                 creators.forEach { creator ->
-                    peopleById[creator.personId]?.let { addCreators(creator.toMessage(it)) }
+                    addCreators(creator.toMessage(peopleById.getValue(creator.personId)))
                 }
             }.build()
         }
