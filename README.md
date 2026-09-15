@@ -7,7 +7,7 @@ A small movie manager: a **SvelteKit** frontend over a single **GraphQL** API, b
 The frontend never talks to `person-service`. Cast and creators are fetched by `movie-service` over
 gRPC, so the two services keep separate databases and never read each other's tables.
 
-The brief is covered end to end: **206 tests pass** (75 `movie-service`, 74 `person-service`,
+The brief is covered end to end: **211 tests pass** (80 `movie-service`, 74 `person-service`,
 57 `frontend`) and `docker compose up --build` brings the whole stack up from a clean state.
 
 ## What it does
@@ -237,7 +237,7 @@ variables are needed locally. If your default JDK is newer than 21, set `JAVA_HO
 
 ```bash
 cd person-service && ./gradlew test    # 74 tests
-cd movie-service  && ./gradlew test    # 79 tests
+cd movie-service  && ./gradlew test    # 80 tests
 cd frontend       && npm test          # 57 tests
 cd frontend       && npm run check     # svelte-check
 ```
@@ -245,7 +245,7 @@ cd frontend       && npm run check     # svelte-check
 | Suite | Coverage |
 | --- | --- |
 | `person-service` | CRUD and edge cases for people, cast and creators; case-insensitive search; role cleanup on person deletion; proto ↔ domain mapping; gRPC status contract (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`); full gRPC → JPA stack on H2 |
-| `movie-service` | Movie CRUD, search, pagination clamps, sorting; artwork validation, replacement, removal and cover promotion; upload storage, after-commit file cleanup and path-traversal refusals; GraphQL end to end via `GraphQlTester`; gRPC client against an in-process server |
+| `movie-service` | Movie CRUD, search, pagination clamps, sorting; artwork validation, replacement, removal and cover promotion; upload storage, after-commit file cleanup and path-traversal refusals; GraphQL end to end via `GraphQlTester`; gRPC client against an in-process server, and the per-call deadline that stops a hung `person-service` call |
 | `frontend` | Movie card and page rendering, loading/empty/error states, dialog validation and payloads, role dialog search and edit mode, artwork validation, preview and upload progress, SSR loaders |
 
 Kotlin tests use JUnit (the version Spring Boot 4 supplies), MockK and AssertJ, plus `GraphQlTester`
@@ -307,8 +307,10 @@ Kept short and honest — these are deliberate scope decisions, not oversights.
   UI**, which uses the dedicated movie and people search boxes.
 - **Cast and creator lists are not paginated** (a film has few roles), and adding the same person
   twice as cast is allowed.
-- **No gRPC retries, timeouts or circuit breaker.** If `person-service` is down, a movie detail query
-  returns an error instead of degrading gracefully.
+- **No gRPC retries or circuit breaker.** Every call to `person-service` carries a 5 s deadline
+  (`spring.grpc.client.channel.person.default.deadline`), so one that stops answering fails with
+  `DEADLINE_EXCEEDED` instead of hanging — but that is still an error rather than a graceful
+  degradation, and nothing retries it.
 - **Both databases share one PostgreSQL container.** Separate databases, but separate instances and
   credentials would be the production shape.
 

@@ -18,6 +18,8 @@ spring:
       channel:
         person:
           target: ${GRPC_HOST:localhost}:${GRPC_PORT:9090}
+          default:
+            deadline: ${GRPC_DEADLINE:5s}
 
 server:
   port: 8081

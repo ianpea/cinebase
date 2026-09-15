@@ -28,13 +28,14 @@ Everything has a working default, so local development needs no environment vari
 | `DB_PASSWORD` | `cinebase` | database password |
 | `GRPC_HOST` | `localhost` | where `person-service` is reachable (in Compose: `person-service`) |
 | `GRPC_PORT` | `9090` | `person-service` gRPC port |
+| `GRPC_DEADLINE` | `5s` | ceiling on every `person-service` RPC |
 | `UPLOADS_DIR` | `uploads` | directory for artwork files (in Compose: `/app/uploads`) |
 
 ## Run it
 
 ```bash
 ./gradlew bootRun     # GraphQL on http://localhost:8081/graphql
-./gradlew test        # 79 tests
+./gradlew test        # 80 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -74,6 +75,10 @@ wraps it and converts gRPC status codes into domain exceptions.
 - Channel target: `spring.grpc.client.channel.person.target` = `${GRPC_HOST}:${GRPC_PORT}`
 - Calls used: `GetPeopleForMovie` (movie detail), `SearchPeople`, person CRUD, and the cast/creator
   add-update-remove RPCs.
+- Deadline: `spring.grpc.client.channel.person.default.deadline` = `${GRPC_DEADLINE:5s}`. Spring gRPC
+  applies its `DefaultDeadlineSetupClientInterceptor` to the channel, so every call gets the deadline
+  and a `person-service` that stops answering fails with `DEADLINE_EXCEEDED` instead of holding the
+  GraphQL request open forever. There is still no retry and no circuit breaker.
 
 The property name matters: `spring.grpc.client.channels.<name>.address` is silently ignored and the
 channel then treats the name as a DNS host.
@@ -99,7 +104,7 @@ channel then treats the name as a DNS host.
 ## Tests
 
 ```bash
-./gradlew test        # 79 tests, 5 classes
+./gradlew test        # 80 tests, 6 classes
 ```
 
 | File | Tests | Focus |
@@ -108,6 +113,7 @@ channel then treats the name as a DNS host.
 | `artwork/ArtworkServiceTest` | 15 | upload gate (empty, oversize, wrong type), extension mapping, cover promotion, removal |
 | `config/UploadStorageTest` | 9 | unique names, byte round-trip, deletes, after-commit timing, path-traversal refusals |
 | `grpc/PersonClientTest` | 3 | in-process gRPC: response mapping, request mapping, error propagation |
+| `grpc/PersonClientDeadlineTest` | 1 | a silent `person-service` is ended by the configured deadline, not by hanging |
 | `MovieServiceGraphQlIntegrationTest` | 31 | GraphQL end to end via `GraphQlTester` on H2, with a mocked gRPC client — CRUD, validation, search, pagination, sorting, artwork, role delegation and the error contract |
 
 Integration tests run against H2 in PostgreSQL mode with files written to `build/test-uploads`, so
