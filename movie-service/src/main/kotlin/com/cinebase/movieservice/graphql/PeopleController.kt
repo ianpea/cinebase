@@ -1,6 +1,7 @@
 package com.cinebase.movieservice.graphql
 
 import com.cinebase.movieservice.grpc.PersonClient
+import com.cinebase.movieservice.movie.MovieService
 import jakarta.validation.Valid
 import org.springframework.graphql.data.method.annotation.Argument
 import org.springframework.graphql.data.method.annotation.MutationMapping
@@ -12,9 +13,15 @@ import org.springframework.stereotype.Controller
  *
  * Every method here delegates to person-service over gRPC — movie-service never touches the
  * person database directly. gRPC failures surface as GraphQL errors via [GraphQlExceptionAdvice].
+ *
+ * Movie existence is checked here, before the role RPCs, because movie-service owns movies and is
+ * the only service that can answer that question; person-service keeps accepting any movie id.
  */
 @Controller
-class PeopleController(private val people: PersonClient) {
+class PeopleController(
+    private val people: PersonClient,
+    private val movies: MovieService,
+) {
 
     // --- Queries ---
 
@@ -53,8 +60,10 @@ class PeopleController(private val people: PersonClient) {
     // --- Cast mutations ---
 
     @MutationMapping
-    fun addCastMember(@Argument @Valid input: CastInput): CastMemberDto =
-        people.addCastMember(input.movieId, input.personId, input.characterName).toDto()
+    fun addCastMember(@Argument @Valid input: CastInput): CastMemberDto {
+        requireMovie(input.movieId)
+        return people.addCastMember(input.movieId, input.personId, input.characterName).toDto()
+    }
 
     @MutationMapping
     fun updateCastMember(@Argument id: Long, @Argument @Valid input: CastInput): CastMemberDto =
@@ -66,8 +75,10 @@ class PeopleController(private val people: PersonClient) {
     // --- Creator mutations ---
 
     @MutationMapping
-    fun addCreator(@Argument @Valid input: CreatorInput): CreatorDto =
-        people.addCreator(input.movieId, input.personId, input.job).toDto()
+    fun addCreator(@Argument @Valid input: CreatorInput): CreatorDto {
+        requireMovie(input.movieId)
+        return people.addCreator(input.movieId, input.personId, input.job).toDto()
+    }
 
     @MutationMapping
     fun updateCreator(@Argument id: Long, @Argument @Valid input: CreatorInput): CreatorDto =
@@ -75,4 +86,10 @@ class PeopleController(private val people: PersonClient) {
 
     @MutationMapping
     fun removeCreator(@Argument id: Long): Boolean = people.removeCreator(id)
+
+    /**
+     * Rejects a role whose movie does not exist. Only this service owns movies, so only this
+     * service can answer the question — person-service accepts any movie id it is handed.
+     */
+    private fun requireMovie(movieId: Long) = movies.get(movieId)
 }

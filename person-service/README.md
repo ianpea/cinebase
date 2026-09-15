@@ -32,8 +32,10 @@ An HTTP port (8082) is bound because the web starter is on the classpath, but no
 | `movie_creator` | movie id, person id, job |
 
 Those are the only tables this service owns. `movieId` is an ordinary number: there is no
-cross-database foreign key and this service never reads the `movies` table. Movie ids are supplied by
-`movie-service`, which owns movies and is the only service that knows whether one exists.
+cross-database foreign key and this service never reads the `movies` table. Movie ids come from
+`movie-service`, which owns movies and confirms that a movie exists before it sends a cast or
+creator role over gRPC; this service simply stores the id it is given, which keeps it free of any
+dependency on movie data.
 
 Deleting a person also deletes their cast and creator roles, in the same transaction: every table
 involved belongs to this database, so the cleanup never crosses a service boundary.

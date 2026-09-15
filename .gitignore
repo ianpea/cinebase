@@ -7,3 +7,21 @@ genesis-plan.md
 # Host-side artwork volume, kept as an empty directory via .gitkeep
 data/uploads/*
 !data/uploads/.gitkeep
+
+# OS noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE / editor project files (per-developer, not shared)
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Generated build output - always reproducible from source
+build/
+.gradle/
+out/
+target/
+*.class

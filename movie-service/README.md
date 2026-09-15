@@ -17,7 +17,7 @@ Requires JDK 21 and PostgreSQL 16+; the Gradle wrapper is included and every set
 
 ```bash
 ./gradlew bootRun     # GraphQL on http://localhost:8081/graphql
-./gradlew test        # 78 tests
+./gradlew test        # 80 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -39,7 +39,9 @@ failure. Artwork uploads use the GraphQL multipart request spec on the same endp
 | `artworks` | movie id, public URL, type (`POSTER`, `BACKDROP`, `STILL`) |
 
 Nothing here references people: `movieId` values are plain numbers in `person-service`, so the two
-databases stay independent. Artwork writes check that their movie exists.
+databases stay independent. Because this service owns movies, it is also the only one that can
+decide whether a movie exists: artwork writes and cast/creator role writes both check the id
+locally before anything is stored or sent over gRPC.
 
 ## gRPC client role
 
@@ -48,7 +50,9 @@ databases stay independent. Artwork writes check that their movie exists.
 - Proto contract: [`../proto/cinebase/person/v1/person-service.proto`](../proto/cinebase/person/v1/person-service.proto)
 - Channel target: `spring.grpc.client.channel.person.target` = `${GRPC_HOST}:${GRPC_PORT}`
 - Calls used: `GetPeopleForMovie` (movie detail), `SearchPeople`, person CRUD and the cast/creator role
-  RPCs.
+  RPCs. A role RPC is only sent once the movie id has been confirmed against the local `movies` table,
+  so `person-service` never has to know what a valid movie is; an unknown id fails with `NOT_FOUND`
+  before the call leaves this service.
 - Deadline: `spring.grpc.client.channel.person.default.deadline` = `${GRPC_DEADLINE:5s}` bounds every
   call, so a silent `person-service` fails with `DEADLINE_EXCEEDED` instead of hanging a GraphQL request.
 
@@ -65,7 +69,7 @@ databases stay independent. Artwork writes check that their movie exists.
 
 ## Tests
 
-78 tests in 6 classes (`./gradlew test`).
+80 tests in 6 classes (`./gradlew test`).
 
 | File | Tests | Focus |
 | --- | --- | --- |
@@ -73,6 +77,6 @@ databases stay independent. Artwork writes check that their movie exists.
 | `artwork/ArtworkServiceTest` | 15 | upload gate (empty, oversize, wrong type), extension mapping, cover promotion, removal |
 | `config/UploadStorageTest` | 9 | unique names, byte round-trip, deletes, after-commit timing, path-traversal refusals |
 | `grpc/PersonClientTest`, `grpc/PersonClientDeadlineTest` | 4 | in-process gRPC: response and request mapping, error propagation, and the configured deadline |
-| `MovieServiceGraphQlIntegrationTest` | 31 | GraphQL end to end via `GraphQlTester` on H2 with a mocked gRPC client |
+| `MovieServiceGraphQlIntegrationTest` | 33 | GraphQL end to end via `GraphQlTester` on H2 with a mocked gRPC client, including the movie-existence checks that guard artwork and role writes |
 
 Integration tests run against H2 in PostgreSQL mode, writing files to `build/test-uploads`.

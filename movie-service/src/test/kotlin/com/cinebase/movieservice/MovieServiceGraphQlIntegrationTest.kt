@@ -69,6 +69,9 @@ class MovieServiceGraphQlIntegrationTest {
     /** Unique per test, so rows left behind by other tests can never satisfy an assertion. */
     private val serial = AtomicInteger()
 
+    /** An id no test creates, so movie-existence checks always fail against it. */
+    private val unknownMovieId = 999_999L
+
     // --- helpers ---
 
     private fun uniqueTitle(label: String) = "IT-$label-${serial.incrementAndGet()}"
@@ -480,6 +483,35 @@ class MovieServiceGraphQlIntegrationTest {
             .returnResponse()
 
         assertThat(only(response).errorType).isEqualTo(ErrorType.BAD_REQUEST)
+        Mockito.verifyNoInteractions(personClient)
+    }
+
+    @Test
+    fun `addCastMember rejects a movie that does not exist without touching person-service`() {
+        val response = tester.document(ADD_CAST)
+            .variable(
+                "input",
+                mapOf("movieId" to unknownMovieId.toString(), "personId" to "7", "characterName" to "Cooper"),
+            )
+            .execute()
+            .returnResponse()
+
+        // movie-service owns movies, so it rejects the role itself instead of delegating the check.
+        assertThat(only(response).errorType).isEqualTo(ErrorType.NOT_FOUND)
+        Mockito.verifyNoInteractions(personClient)
+    }
+
+    @Test
+    fun `addCreator rejects a movie that does not exist without touching person-service`() {
+        val response = tester.document(ADD_CREATOR)
+            .variable(
+                "input",
+                mapOf("movieId" to unknownMovieId.toString(), "personId" to "8", "job" to "Director"),
+            )
+            .execute()
+            .returnResponse()
+
+        assertThat(only(response).errorType).isEqualTo(ErrorType.NOT_FOUND)
         Mockito.verifyNoInteractions(personClient)
     }
 

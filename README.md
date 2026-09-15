@@ -180,18 +180,18 @@ In Compose the channel target is the service name (`person-service:9090`), never
 
 **Safe artwork deletion.** Artwork files are deleted only after the corresponding database transaction commits. This prevents a rollback from leaving database records pointing to files that have already been removed.
 
-**Person identity and role integrity.** People are checked for duplicates using a trimmed, case-insensitive name together with birth date. Deleting a person also removes their associated cast and creator roles within the same transaction.
+**Person identity and role integrity.** People are checked for duplicates using a trimmed, case-insensitive name together with birth date. Deleting a person also removes their associated cast and creator roles within the same transaction. Creating a role also requires an existing movie: because `movie-service` owns movies, it checks the id itself and answers `NOT_FOUND` before any gRPC call, so `person-service` never needs to know what a valid movie is.
 
 **Consistent movie artwork.** A movie's cover is kept in sync with its artwork records, including promoting another artwork when the current cover is removed.
 
 
 ## Testing
 
-**237 tests, all passing.**
+**239 tests, all passing.**
 
 | Suite | Tests | Stack |
 | --- | --- | --- |
-| `movie-service` | 78 | JUnit, MockK, AssertJ, `GraphQlTester`, in-process gRPC, H2 |
+| `movie-service` | 80 | JUnit, MockK, AssertJ, `GraphQlTester`, in-process gRPC, H2 |
 | `person-service` | 84 | JUnit, MockK, AssertJ, in-process gRPC, H2 |
 | `frontend` | 75 | Vitest, `@testing-library/svelte`, jsdom |
 
@@ -204,7 +204,7 @@ cd frontend       && npm run check    # svelte-check
 
 | Suite | What the tests cover |
 | --- | --- |
-| `movie-service` | Movie CRUD, search, sorting and pagination clamps; artwork validation, replacement, removal and cover promotion; upload storage, after-commit file cleanup and path-traversal refusals; GraphQL end to end via `GraphQlTester`; the gRPC client against an in-process server and its per-call deadline |
+| `movie-service` | Movie CRUD, search, sorting and pagination clamps; artwork validation, replacement, removal and cover promotion; movie-existence checks for artwork and role writes; upload storage, after-commit file cleanup and path-traversal refusals; GraphQL end to end via `GraphQlTester`; the gRPC client against an in-process server and its per-call deadline |
 | `person-service` | CRUD and edge cases for people, cast and creators; duplicate person rejection; case-insensitive search; role cleanup on person deletion; proto ↔ domain mapping; the gRPC status contract (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`); the full gRPC → JPA stack on H2 |
 | `frontend` | Page rendering from SSR data, loading / empty / error states, dialog validation and payloads, role dialog search and edit mode, artwork validation and upload progress, and the SSR loaders |
 
@@ -227,5 +227,5 @@ GitHub Copilot in VS Code (agent mode) was used throughout development based on 
 
 AI assisted with the initial implementation across the Spring Boot services, GraphQL and gRPC integration, Svelte frontend, Docker configuration and automated tests. Generated code was reviewed, run and refined as the application was integrated, including simplifying frontend state handling and removing low-value tests.
 
-The final implementation was verified with **237 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
+The final implementation was verified with **239 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
 
