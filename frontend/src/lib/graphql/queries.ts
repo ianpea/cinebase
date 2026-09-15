@@ -1,4 +1,4 @@
-import { gql, type TypedDocumentNode } from '@urql/core';
+import {gql, type TypedDocumentNode} from '@urql/core';
 import type {
 	AddCastMemberMutation,
 	AddCastMemberVariables,
@@ -14,6 +14,7 @@ import type {
 	DeletePersonVariables,
 	MovieDetailQuery,
 	MovieDetailQueryVariables,
+	MovieSortField,
 	MoviesQuery,
 	MoviesQueryVariables,
 	PeopleQuery,
@@ -24,6 +25,7 @@ import type {
 	RemoveCreatorVariables,
 	RemoveMovieArtworkMutation,
 	RemoveMovieArtworkVariables,
+	SortDirection,
 	UpdateCastMemberMutation,
 	UpdateCastMemberVariables,
 	UpdateCreatorMutation,
@@ -43,6 +45,18 @@ import type {
  * Each document is declared as a `TypedDocumentNode` so `request`/`mutate` infer both the
  * variables and the result type from the document itself.
  */
+
+// --- First-page defaults ---
+// Shared by the SSR loads (`+page.server.ts`) and the pages themselves: the server renders the
+// first page of a list with exactly these values, and the page state starts from the same ones,
+// so hydrating never asks the API for something different than what it already received.
+
+/** Rows per page for the movie and people lists. */
+export const PAGE_SIZE = 12;
+
+/** Movies are shown newest first until the user picks another sort. */
+export const DEFAULT_MOVIE_SORT_FIELD: MovieSortField = 'CREATED_AT';
+export const DEFAULT_MOVIE_SORT_DIRECTION: SortDirection = 'DESC';
 
 const MOVIE_SUMMARY = gql`
 	fragment MovieSummary on Movie {

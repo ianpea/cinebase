@@ -1,4 +1,4 @@
-import { cacheExchange, createClient, fetchExchange } from '@urql/core';
+import {cacheExchange, createClient, fetchExchange} from '@urql/core';
 
 /**
  * urql client for the SvelteKit frontend.
@@ -11,6 +11,9 @@ import { cacheExchange, createClient, fetchExchange } from '@urql/core';
  * `@urql/svelte`'s `queryStore`/`mutationStore` capture `variables` once at creation and every
  * page here is driven by reactive variables (search, sort, page, route id). `api.ts` wraps the
  * client so pages stay typed and only need `try/catch`.
+ *
+ * This is the browser client: the relative URL cannot be resolved while rendering on the server.
+ * SSR loads use `$lib/server/graphql.ts` instead.
  */
 export const client = createClient({
 	url: '/graphql',

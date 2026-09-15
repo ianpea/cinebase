@@ -2,13 +2,16 @@ import {env} from '$env/dynamic/private';
 import {json, type Handle} from '@sveltejs/kit';
 
 /**
- * The frontend only ever talks to movie-service through relative paths: the urql client uses
+ * The browser only ever talks to movie-service through relative paths: the urql client uses
  * `url: '/graphql'` and artwork images use `/uploads/...`.
  *
  * In development `vite.config.ts` proxies both of those to http://localhost:8081, but that proxy
  * belongs to the dev server and does not exist in the production Node server that Docker runs.
  * This hook performs the same forwarding, which keeps every URL relative and means movie-service
  * needs no CORS configuration.
+ *
+ * Server-side rendering does not come through here — it queries movie-service directly through
+ * `$lib/server/graphql.ts`, so only browser requests are proxied.
  */
 const PROXIED_PREFIXES = ['/graphql', '/uploads'];
 

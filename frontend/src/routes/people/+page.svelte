@@ -4,6 +4,7 @@
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import type { PageProps } from './$types';
 	import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
 	import EmptyState from '$lib/components/empty-state.svelte';
 	import ErrorState from '$lib/components/error-state.svelte';
@@ -13,18 +14,23 @@
 	import SearchInput from '$lib/components/search-input.svelte';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { errorMessage, mutate, request } from '$lib/graphql/api';
-	import { DeletePersonDocument, PeopleDocument } from '$lib/graphql/queries';
+	import { DeletePersonDocument, PAGE_SIZE, PeopleDocument } from '$lib/graphql/queries';
 	import type { Person, PersonPage } from '$lib/graphql/types';
 	import { formatDate } from '$lib/format';
 
-	const PAGE_SIZE = 12;
+	let { data }: PageProps = $props();
 
 	let search = $state('');
 	let page = $state(0);
 
-	let result = $state<PersonPage | null>(null);
-	let loading = $state(true);
-	let error = $state<string | null>(null);
+	// `+page.server.ts` already queried exactly this first page, so start from its result. Only the
+	// starting value comes from the load — from here the page owns its state, and `load()` replaces
+	// it on every search change and after every mutation. Hence the deliberate capture-once ignore.
+	// svelte-ignore state_referenced_locally
+	let result = $state<PersonPage | null>(data.people);
+	let loading = $state(false);
+	// svelte-ignore state_referenced_locally
+	let error = $state<string | null>(data.peopleError);
 
 	let dialogOpen = $state(false);
 	let editing = $state<Person | null>(null);
@@ -36,12 +42,12 @@
 		loading = true;
 		error = null;
 		try {
-			const data = await request(PeopleDocument, {
+			const { people } = await request(PeopleDocument, {
 				search: search.trim() || null,
 				page,
 				size: PAGE_SIZE
 			});
-			result = data.people;
+			result = people;
 		} catch (e) {
 			error = errorMessage(e);
 			result = null;
@@ -50,8 +56,17 @@
 		}
 	}
 
+	// The first run of this effect is hydration, whose inputs are the ones the server already
+	// fetched; running again would repeat that request. Skipping exactly one run keeps every later
+	// change (search, page, or an explicit refetch after a mutation) going to the network.
+	let skippingInitialLoad = true;
+
 	$effect(() => {
 		void [search, page];
+		if (skippingInitialLoad) {
+			skippingInitialLoad = false;
+			return;
+		}
 		void load();
 	});
 

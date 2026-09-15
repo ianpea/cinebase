@@ -69,9 +69,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      # Read by src/hooks.server.ts, which forwards /graphql and /uploads here.
+      # Where the frontend server reaches movie-service: `src/hooks.server.ts` forwards browser
+      # requests for /graphql and /uploads here, and SSR loads query it directly through
+      # src/lib/server/graphql.ts. The browser itself keeps using the relative /graphql.
       # This replaces the Vite dev-server proxy used during local development.
-      MOVIE_SERVICE_ORIGIN: http://movie-service:8081
+      MOVIE_SERVICE_ORIGIN: ${MOVIE_SERVICE_ORIGIN:-http://movie-service:8081}
       # adapter-node: ORIGIN is required for POST requests (CSRF check), HOST/PORT
       # bind the server, and BODY_SIZE_LIMIT must be raised above its 512 KB
       # default or artwork uploads fail with 413 before they reach the backend.

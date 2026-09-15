@@ -7,6 +7,7 @@
 	import RefreshCwIcon from '@lucide/svelte/icons/refresh-cw';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { toast } from 'svelte-sonner';
+	import type { PageProps } from './$types';
 	import ArtworkUpload from '$lib/components/artwork-upload.svelte';
 	import CastCreatorDialog from '$lib/components/cast-creator-dialog.svelte';
 	import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
@@ -30,11 +31,17 @@
 	/** Shared shape for the cast/creator dialog when editing an existing relationship. */
 	type Relation = { id: string; personId: string; personName: string; detail: string };
 
+	let { data }: PageProps = $props();
+
 	const movieId = $derived(page.params.id ?? '');
 
-	let movie = $state<Movie | null>(null);
-	let loading = $state(true);
-	let error = $state<string | null>(null);
+	// `+page.server.ts` already queried this movie, so render it from the first byte; the effect
+	// below applies a later load for another id, and `load()` refreshes after a mutation.
+	// svelte-ignore state_referenced_locally
+	let movie = $state<Movie | null>(data.movie);
+	let loading = $state(false);
+	// svelte-ignore state_referenced_locally
+	let error = $state<string | null>(data.movieError);
 
 	let movieDialogOpen = $state(false);
 
@@ -59,8 +66,8 @@
 		loading = true;
 		error = null;
 		try {
-			const data = await request(MovieDetailDocument, { id: movieId });
-			movie = data.movie;
+			const detail = await request(MovieDetailDocument, { id: movieId });
+			movie = detail.movie;
 		} catch (e) {
 			error = errorMessage(e);
 			movie = null;
@@ -69,9 +76,12 @@
 		}
 	}
 
+	// SvelteKit re-runs `+page.server.ts` on every navigation to this route — including a
+	// client-side one to another id — so new server data is applied here instead of being fetched
+	// a second time by the browser.
 	$effect(() => {
-		void movieId;
-		void load();
+		movie = data.movie;
+		error = data.movieError;
 	});
 
 	function askConfirm(title: string, description: string, action: () => Promise<void>) {

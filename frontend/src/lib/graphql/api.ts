@@ -1,29 +1,21 @@
-import type { AnyVariables, CombinedError, TypedDocumentNode } from '@urql/core';
-import { client } from './client';
+import type {AnyVariables, TypedDocumentNode} from '@urql/core';
+import {client} from './client';
+import {unwrap, type QueryResult, type QueryVariables} from './result';
 
 /**
- * Thin wrappers around the urql client that turn `CombinedError`s into thrown
+ * Thin wrappers around the browser urql client that turn `CombinedError`s into thrown
  * `Error`s, so pages can use plain `try/catch` and show one message per failure.
  *
  * Both result and variables types are read off the `TypedDocumentNode` itself, so every call
  * is fully typed without repeating generics at the call site.
+ *
+ * This module is browser-only: it resolves `/graphql` against the page, so it cannot serve an SSR
+ * load. Server loads use `$lib/server/graphql.ts`, which sends the same documents over an
+ * absolute URL and unwraps the result with the same helpers.
  */
 
-/** The `Data` type a document was declared with. */
-export type QueryResult<Doc> = Doc extends TypedDocumentNode<infer Result, never> ? Result : never;
-
-/** The variables type a document was declared with. */
-export type QueryVariables<Doc> = Doc extends TypedDocumentNode<never, infer Vars> ? Vars : never;
-
-function unwrap(result: { error?: CombinedError; data?: unknown }): unknown {
-	if (result.error) {
-		// Surface the server's GraphQL messages (e.g. validation) rather than the generic wrapper.
-		const messages = result.error.graphQLErrors.map((e) => e.message);
-		throw new Error(messages.length ? messages.join('; ') : result.error.message);
-	}
-	if (result.data == null) throw new Error('The server returned no data.');
-	return result.data;
-}
+// `errorMessage` is imported from many components; re-exporting keeps that import path intact.
+export {errorMessage} from './result';
 
 /** Runs a GraphQL query and resolves with its data. */
 export async function request<Doc extends TypedDocumentNode<any, any>>(
@@ -41,13 +33,4 @@ export async function mutate<Doc extends TypedDocumentNode<any, any>>(
 ): Promise<QueryResult<Doc>> {
 	const result = await client.mutation(query, variables as AnyVariables).toPromise();
 	return unwrap(result) as QueryResult<Doc>;
-}
-
-/** Normalises anything thrown (Error, CombinedError, string) into a display message. */
-export function errorMessage(error: unknown): string {
-	if (error instanceof Error && error.message) return error.message;
-	const combined = error as CombinedError | null;
-	if (combined?.graphQLErrors?.length) return combined.graphQLErrors.map((e) => e.message).join('; ');
-	if (typeof error === 'string') return error;
-	return 'Something went wrong. Please try again.';
 }

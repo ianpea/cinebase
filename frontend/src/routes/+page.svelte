@@ -2,6 +2,7 @@
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
+	import type { PageProps } from './$types';
 	import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
 	import EmptyState from '$lib/components/empty-state.svelte';
 	import ErrorState from '$lib/components/error-state.svelte';
@@ -14,10 +15,14 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import * as Select from '$lib/components/ui/select/index.js';
 	import { errorMessage, mutate, request } from '$lib/graphql/api';
-	import { DeleteMovieDocument, MoviesDocument } from '$lib/graphql/queries';
+	import {
+		DEFAULT_MOVIE_SORT_DIRECTION,
+		DEFAULT_MOVIE_SORT_FIELD,
+		DeleteMovieDocument,
+		MoviesDocument,
+		PAGE_SIZE
+	} from '$lib/graphql/queries';
 	import type { Movie, MoviePage, MovieSortField, SortDirection } from '$lib/graphql/types';
-
-	const PAGE_SIZE = 12;
 
 	// Declared once and used for both the trigger label lookup (`items`) and the menu entries.
 	const SORT_FIELDS: { value: MovieSortField; label: string }[] = [
@@ -30,14 +35,21 @@
 		{ value: 'ASC', label: 'Ascending' }
 	];
 
+	let { data }: PageProps = $props();
+
 	let search = $state('');
-	let sortField = $state<MovieSortField>('CREATED_AT');
-	let sortDirection = $state<SortDirection>('DESC');
+	let sortField = $state<MovieSortField>(DEFAULT_MOVIE_SORT_FIELD);
+	let sortDirection = $state<SortDirection>(DEFAULT_MOVIE_SORT_DIRECTION);
 	let page = $state(0);
 
-	let result = $state<MoviePage | null>(null);
-	let loading = $state(true);
-	let error = $state<string | null>(null);
+	// `+page.server.ts` already queried exactly this first page, so start from its result. Only the
+	// starting value comes from the load — from here the page owns its state, and `load()` replaces
+	// it on every filter change and after every mutation. Hence the deliberate capture-once ignore.
+	// svelte-ignore state_referenced_locally
+	let result = $state<MoviePage | null>(data.movies);
+	let loading = $state(false);
+	// svelte-ignore state_referenced_locally
+	let error = $state<string | null>(data.moviesError);
 
 	let dialogOpen = $state(false);
 	let editing = $state<Movie | null>(null);
@@ -49,13 +61,13 @@
 		loading = true;
 		error = null;
 		try {
-			const data = await request(MoviesDocument, {
+			const { movies } = await request(MoviesDocument, {
 				search: search.trim() || null,
 				sort: { field: sortField, direction: sortDirection },
 				page,
 				size: PAGE_SIZE
 			});
-			result = data.movies;
+			result = movies;
 		} catch (e) {
 			error = errorMessage(e);
 			result = null;
@@ -64,9 +76,18 @@
 		}
 	}
 
+	// The first run of this effect is hydration, whose inputs are the ones the server already
+	// fetched; running again would repeat that request. Skipping exactly one run keeps every later
+	// change (search, sort, page, or an explicit refetch after a mutation) going to the network.
+	let skippingInitialLoad = true;
+
 	// Reload for the current search, sort and page. The search input already debounces.
 	$effect(() => {
 		void [search, sortField, sortDirection, page];
+		if (skippingInitialLoad) {
+			skippingInitialLoad = false;
+			return;
+		}
 		void load();
 	});
 
