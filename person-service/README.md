@@ -2,28 +2,18 @@
 
 Owns people and the roles that connect them to movies: cast members and creators.
 
-It speaks **gRPC only**. There is no REST API and no GraphQL here — `movie-service` calls it, and the
-frontend never does. Keeping this data behind its own service is what makes the gRPC hop real rather
-than decorative.
+It speaks **gRPC only** — no REST and no GraphQL. `movie-service` calls it; the frontend never does.
 
-## Requirements
+## Configuration and run
 
-- JDK 21
-- PostgreSQL 16+
-- No local Gradle — the wrapper is included (`./gradlew`)
-
-## Configuration
-
-Everything has a working default, so local development needs no environment variables.
+Requires JDK 21 and PostgreSQL 16+ (the Gradle wrapper is included). Every setting below has a working
+default, so local development needs no environment variables.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `DB_URL` | `jdbc:postgresql://localhost:5432/person_service` | database connection |
-| `DB_USERNAME` | `cinebase` | database user |
-| `DB_PASSWORD` | `cinebase` | database password |
+| `DB_USERNAME`, `DB_PASSWORD` | `cinebase` | database credentials |
 | `GRPC_PORT` | `9090` | gRPC server port |
-
-## Run it
 
 ```bash
 ./gradlew bootRun     # gRPC on port 9090
@@ -31,12 +21,9 @@ Everything has a working default, so local development needs no environment vari
 ./gradlew bootJar     # build the runnable jar
 ```
 
-An HTTP port (8082) is also bound because the web starter is on the classpath, but the service
-exposes no HTTP API. In Compose only the gRPC port needs to be reachable from `movie-service`.
+An HTTP port (8082) is bound because the web starter is on the classpath, but no HTTP API is exposed.
 
 ## Data ownership
-
-This service owns three tables in the `person_service` database and nothing else:
 
 | Table | Contents |
 | --- | --- |
@@ -44,20 +31,12 @@ This service owns three tables in the `person_service` database and nothing else
 | `movie_cast` | movie id, person id, character name |
 | `movie_creator` | movie id, person id, job |
 
-`movieId` is an ordinary number — there is no cross-database foreign key, and this service never reads
-the `movies` table. Two facts follow from that, and both are deliberate:
+Those are the only tables this service owns. `movieId` is an ordinary number: there is no
+cross-database foreign key and this service never reads the `movies` table. Movie ids are supplied by
+`movie-service`, which owns movies and is the only service that knows whether one exists.
 
-- Adding a role for a movie id that does not exist succeeds here; `movie-service` owns the movie and
-  is the only place that can reject it.
-- Deleting a person deletes their roles too. Every table involved belongs to this service's
-  database, so the cleanup happens here, in one transaction, and never crosses a service boundary.
-
-### Deleting a person
-
-`DeletePerson` removes the person's `movie_cast` rows, then their `movie_creator` rows, then the
-`people` row — three statements in one transaction. The two role deletes are bulk deletes by
-`person_id`, so roles are never loaded into memory just to be removed. Because the statements share
-the transaction, a person row can never commit while roles still point at it.
+Deleting a person also deletes their cast and creator roles, in the same transaction: every table
+involved belongs to this database, so the cleanup never crosses a service boundary.
 
 ## gRPC
 
@@ -71,16 +50,13 @@ the transaction, a person row can never commit while roles still point at it.
 | Cast | `AddCastMember`, `UpdateCastMember`, `RemoveCastMember` |
 | Creators | `AddCreator`, `UpdateCreator`, `RemoveCreator` |
 
-`PersonGrpcService` only translates between protobuf messages and domain objects; `PersonService`,
-`CastService` and `CreatorService` hold the rules. Domain failures are mapped to gRPC statuses
-(`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`) in one place, so `movie-service` can present a single
-consistent error to the user.
+`PersonGrpcService` translates between protobuf messages and domain objects; `PersonService`,
+`CastService` and `CreatorService` hold the rules. Domain failures map to gRPC statuses (`NOT_FOUND`,
+`INVALID_ARGUMENT`, `INTERNAL`) so `movie-service` can present one consistent error.
 
 ## Tests
 
-```bash
-./gradlew test        # 84 tests, 5 classes
-```
+84 tests in 5 classes (`./gradlew test`).
 
 | File | Tests | Focus |
 | --- | --- | --- |
@@ -90,6 +66,4 @@ consistent error to the user.
 | `grpc/PersonGrpcServiceTest` | 17 | proto ↔ domain mapping, batched lookup, and the full gRPC status contract |
 | `PersonServiceGrpcIntegrationTest` | 30 | real gRPC server + H2: person CRUD, duplicate identity rejection, case-insensitive search, role add/update/remove, not-found wiring, role cleanup on person deletion, per-movie role isolation |
 
-Two layers of gRPC testing are used on purpose: an in-process server with mocked services for the
-mapping and status contract, and a Spring Boot test against the real server and database for the
-behaviour that only appears end to end.
+In-process tests cover gRPC mapping and statuses; the integration test runs the real server on H2.

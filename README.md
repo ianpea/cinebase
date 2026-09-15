@@ -3,7 +3,8 @@
 A small movie manager. A **SvelteKit** frontend talks to one **GraphQL** API served by
 **movie-service** (Kotlin / Spring Boot), which resolves people, cast and creators from
 **person-service** over **gRPC**. Each service persists to its own **PostgreSQL** database, and the
-frontend communicates only with **movie-service**; all communication with person-service is handled by movie-service over gRPC.
+frontend talks only to **movie-service**.
+
 | Layer | Stack |
 | --- | --- |
 | `frontend` | SvelteKit 2, Svelte 5 (runes), TypeScript, Tailwind 4 + shadcn-svelte, @urql/core |
@@ -82,7 +83,7 @@ both survive a rebuild.
 | --- | --- | --- |
 | frontend | 3000 | the only port you need |
 | movie-service | 8081 | GraphQL at `POST /graphql`, artwork at `GET /uploads/**` |
-| person-service | 9090 | gRPC — deliberately not reachable from the browser |
+| person-service | 9090 | gRPC only, called by movie-service |
 | person-service | 8082 | HTTP port is bound but exposes no API |
 | postgres | 5432 | two databases: `movie_service`, `person_service` |
 
@@ -146,6 +147,7 @@ the UI can show one clear message per failure.
 
 Contract: [`person-service.proto`](proto/cinebase/person/v1/person-service.proto). `person-service` is
 the server and `movie-service` the client.
+
 | Group | RPCs |
 | --- | --- |
 | People | `GetPerson`, `SearchPeople`, `CreatePerson`, `UpdatePerson`, `DeletePerson` |
@@ -185,13 +187,13 @@ In Compose the channel target is the service name (`person-service:9090`), never
 
 ## Testing
 
-**232 tests, all passing.**
+**237 tests, all passing.**
 
 | Suite | Tests | Stack |
 | --- | --- | --- |
 | `movie-service` | 78 | JUnit, MockK, AssertJ, `GraphQlTester`, in-process gRPC, H2 |
 | `person-service` | 84 | JUnit, MockK, AssertJ, in-process gRPC, H2 |
-| `frontend` | 70 | Vitest, `@testing-library/svelte`, jsdom |
+| `frontend` | 75 | Vitest, `@testing-library/svelte`, jsdom |
 
 ```bash
 cd person-service && ./gradlew test
@@ -216,7 +218,7 @@ they need no database and leave nothing behind.
 * **Database schemas use Hibernate `ddl-auto: update`.** A production deployment would use versioned migrations such as Flyway.
 * **Both service databases share one PostgreSQL container.** The schemas remain independently owned, while the deployment is kept simple for the assessment.
 * **Cast and creator lists are not paginated.** They are expected to remain small, and duplicate cast assignments are currently allowed.
-* **Artwork management is intentionally simple.** Artwork supports poster, backdrop and still types with add, replace and remove operations, but not reordering or person photos.
+* **Artwork supports poster, backdrop and still types** with add, replace and remove operations, but no reordering and no person photos.
 * **gRPC resilience is limited to a 5-second deadline.** Retries, circuit breaking and graceful degradation are not implemented.
 
 ## AI usage
@@ -225,5 +227,5 @@ GitHub Copilot in VS Code (agent mode) was used throughout development based on 
 
 AI assisted with the initial implementation across the Spring Boot services, GraphQL and gRPC integration, Svelte frontend, Docker configuration and automated tests. Generated code was reviewed, run and refined as the application was integrated, including simplifying frontend state handling and removing low-value tests.
 
-The final implementation was verified with **232 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
+The final implementation was verified with **237 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
 
