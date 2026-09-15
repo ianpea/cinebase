@@ -7,12 +7,15 @@ import com.cinebase.person.v1.GetPeopleForMovieResponse
 import com.cinebase.person.v1.PersonMessage
 import com.cinebase.person.v1.PersonServiceGrpc
 import io.grpc.Server
+import io.grpc.Status
+import io.grpc.StatusRuntimeException
 import io.grpc.inprocess.InProcessChannelBuilder
 import io.grpc.inprocess.InProcessServerBuilder
 import io.grpc.stub.StreamObserver
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 
 class PersonClientTest {
 
@@ -93,5 +96,26 @@ class PersonClientTest {
         assertThat(movieId).isEqualTo(5L)
         assertThat(personId).isEqualTo(10L)
         assertThat(character).isEqualTo("Cooper")
+    }
+
+    @Test
+    fun `a gRPC failure is propagated unchanged`() {
+        val client = clientFor(object : PersonServiceGrpc.PersonServiceImplBase() {
+            override fun getPeopleForMovie(
+                request: GetPeopleForMovieRequest,
+                responseObserver: StreamObserver<GetPeopleForMovieResponse>,
+            ) {
+                responseObserver.onError(
+                    Status.NOT_FOUND.withDescription("Movie ${request.movieId} is unknown").asRuntimeException(),
+                )
+            }
+        })
+
+        // PersonClient must not swallow the status: GraphQlExceptionAdvice turns it into a
+        // GraphQL error whose type matches the gRPC code.
+        val failure = assertThrows<StatusRuntimeException> { client.getPeopleForMovie(42L) }
+
+        assertThat(failure.status.code).isEqualTo(Status.Code.NOT_FOUND)
+        assertThat(failure.status.description).isEqualTo("Movie 42 is unknown")
     }
 }

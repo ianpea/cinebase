@@ -42,7 +42,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-graphql-test")
     testImplementation("org.springframework.boot:spring-boot-starter-grpc-client-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("io.mockk:mockk:1.14.11")
 
+    testRuntimeOnly("com.h2database:h2:2.5.250")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

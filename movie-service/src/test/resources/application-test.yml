@@ -1,0 +1,13 @@
+# Test profile: in-memory database and a throwaway uploads directory so the suite never
+# touches the developer's PostgreSQL database or real artwork files.
+spring:
+  datasource:
+    url: jdbc:h2:mem:movie_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+app:
+  uploads-dir: build/test-uploads
