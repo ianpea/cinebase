@@ -1,4 +1,4 @@
-import { fireEvent } from '@testing-library/svelte';
+import {fireEvent} from '@testing-library/svelte';
 
 /** Small DOM helpers shared by the component tests. Only test files import this module. */
 
@@ -10,9 +10,9 @@ import { fireEvent } from '@testing-library/svelte';
  * implement form submission navigation.
  */
 export function submitForm() {
-	const form = document.querySelector('form');
-	if (!form) throw new Error('form not rendered');
-	return fireEvent.submit(form);
+    const form = document.querySelector('form');
+    if(!form) throw new Error('form not rendered');
+    return fireEvent.submit(form);
 }
 
 /**
@@ -22,10 +22,10 @@ export function submitForm() {
  * bound value back onto `input.files`.
  */
 export async function chooseFile(input: HTMLInputElement, file: File) {
-	Object.defineProperty(input, 'files', { value: [file], configurable: true, writable: true });
-	await fireEvent.change(input);
+    Object.defineProperty(input, 'files', {value: [file], configurable: true, writable: true});
+    await fireEvent.change(input);
 }
 
 export function imageFile(name: string, type: string, size = 1024): File {
-	return new File([new Uint8Array(size)], name, { type });
+    return new File([new Uint8Array(size)], name, {type});
 }

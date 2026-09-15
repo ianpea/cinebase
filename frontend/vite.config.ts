@@ -1,15 +1,15 @@
 import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-auto';
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vitest/config';
+import {sveltekit} from '@sveltejs/kit/vite';
+import {defineConfig} from 'vitest/config';
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({mode}) => ({
 	plugins: [
 		tailwindcss(),
 		sveltekit({
 			compilerOptions: {
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
-				runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
+				runes: ({filename}) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 			},
 
 			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => ({
 	// Component tests run under Vitest (`mode === 'test'`). `svelte` maps the `browser` condition
 	// to its client build and `default` to its server build, and `@testing-library/svelte` needs
 	// the client one, so the condition has to be requested explicitly.
-	resolve: mode === 'test' ? { conditions: ['browser'] } : undefined,
+	resolve: mode === 'test' ? {conditions: ['browser']} : undefined,
 
 	test: {
 		environment: 'jsdom',
