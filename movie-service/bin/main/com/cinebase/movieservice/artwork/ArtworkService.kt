@@ -20,8 +20,8 @@ class ArtworkService(
         val artwork = artworks.findById(id)
             .orElseThrow { NoSuchElementException("Artwork $id not found") }
         artworks.delete(artwork)
-        storage.deleteByUrl(artwork.url)
         syncCoverArtwork(artwork.movieId)
+        storage.deleteByUrlAfterCommit(artwork.url)
     }
 
     @Transactional

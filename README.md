@@ -89,6 +89,53 @@ Then open <http://localhost:3000>.
 The stack also starts if `movie-service` is reached before it has finished booting: the frontend
 answers `503` with a readable message instead of an opaque `500`.
 
+### Rebuilding after a change
+
+Once you have edited a service, redeploy everything with the same command, run from the repo root:
+
+```bash
+docker compose up --build -d
+```
+
+Compose rebuilds the three services that have a `build:` section and recreates only the containers
+whose image or configuration actually changed. `postgres` is left alone, the database survives on
+the `postgres-data` volume, and artwork survives on the `./data/uploads` bind mount.
+
+To rebuild just what you touched:
+
+```bash
+docker compose up --build -d movie-service                     # one service
+docker compose up --build -d movie-service person-service      # two
+```
+
+| Changed | Rebuilt |
+| --- | --- |
+| `movie-service/**` / `person-service/**` | that service only |
+| `proto/**` | **both** Java services — `COPY proto/` is the first layer in both Dockerfiles |
+| `frontend/src/**` | frontend |
+| `frontend/package-lock.json` | frontend, including a fresh `npm ci` |
+| `docker-compose.yml` only | no rebuild; containers are just recreated |
+
+Three things worth knowing:
+
+- **Do not drop `--build`.** `docker compose up -d` reuses the existing images and silently keeps
+  running your old code — the most common reason a change appears not to work.
+- **Java rebuilds re-download Gradle dependencies every time.** Neither Dockerfile splits dependency
+  resolution into its own layer or mounts a cache, so the Gradle cache lives and dies with that
+  `RUN` step. Expect minutes per Java rebuild even for a one-line change.
+- **Startup order is not readiness.** `movie-service` only waits for `person-service` to be
+  *started*, and the JVMs take about seven seconds to boot, so requests in the first moments after a
+  redeploy get the `503` described above rather than a failure.
+
+```bash
+docker compose ps                 # what is running, and postgres health
+docker compose logs -f            # follow every service
+docker compose down --rmi local   # delete the cinebase images, keep the data
+```
+
+None of this applies to local development without Docker: `./gradlew bootRun` and `npm run dev`
+pick up changes on their own.
+
 ### Ports
 
 | Service | Port | Notes |
@@ -190,7 +237,7 @@ variables are needed locally. If your default JDK is newer than 21, set `JAVA_HO
 
 ```bash
 cd person-service && ./gradlew test    # 74 tests
-cd movie-service  && ./gradlew test    # 75 tests
+cd movie-service  && ./gradlew test    # 79 tests
 cd frontend       && npm test          # 57 tests
 cd frontend       && npm run check     # svelte-check
 ```
@@ -198,7 +245,7 @@ cd frontend       && npm run check     # svelte-check
 | Suite | Coverage |
 | --- | --- |
 | `person-service` | CRUD and edge cases for people, cast and creators; case-insensitive search; role cleanup on person deletion; proto ↔ domain mapping; gRPC status contract (`NOT_FOUND`, `INVALID_ARGUMENT`, `INTERNAL`); full gRPC → JPA stack on H2 |
-| `movie-service` | Movie CRUD, search, pagination clamps, sorting; artwork validation, replacement, removal and cover promotion; upload storage and path-traversal refusals; GraphQL end to end via `GraphQlTester`; gRPC client against an in-process server |
+| `movie-service` | Movie CRUD, search, pagination clamps, sorting; artwork validation, replacement, removal and cover promotion; upload storage, after-commit file cleanup and path-traversal refusals; GraphQL end to end via `GraphQlTester`; gRPC client against an in-process server |
 | `frontend` | Movie card and page rendering, loading/empty/error states, dialog validation and payloads, role dialog search and edit mode, artwork validation, preview and upload progress, SSR loaders |
 
 Kotlin tests use JUnit (the version Spring Boot 4 supplies), MockK and AssertJ, plus `GraphQlTester`
@@ -219,6 +266,7 @@ Things that were not obvious, and how they were resolved and verified:
 | CSRF | SvelteKit's origin check rejected the multipart upload when `Origin` differed (`127.0.0.1` vs `localhost`) while JSON queries kept working; dev skips the check, so it was easy to miss | `csrf.trustedOrigins: ['*']` — safe here because the app has no cookies or sessions |
 | Lazy loading | `@urql/svelte`'s `queryStore` variables are not reactive, so search, sorting and pagination could not drive a query | Used the `@urql/core` client through small typed `request`/`mutate` wrappers instead |
 | Postgres text columns | `@Lob` on a Kotlin `String` maps to PostgreSQL `oid` and breaks the existing `text` column | `@JdbcTypeCode(SqlTypes.LONG32VARCHAR)` |
+| Artwork deletion | Rows are dropped inside a Spring `@Transactional` method while the files live on local disk, and a filesystem is not transactional — a rollback after the files were removed left surviving rows pointing at images that no longer existed | `UploadStorage.deleteByUrlAfterCommit` defers each file to a `TransactionSynchronization.afterCommit` callback and logs (never throws) on disk errors: the commit is the moment the files may follow the rows, and a rollback now leaves every file in place |
 | Empty first paint | The first HTML was a loading placeholder, so the page looked empty until JavaScript ran | `/`, `/people` and `/movies/[id]` have `+page.server.ts` loaders that render the first page during SSR; only later interactions go to the browser |
 | Test suite noise | The first pass had overlapping unit and integration cases (105 in `person-service`) | Audited and cut to 73 by removing duplicated status mapping, delegation-only and equivalent-boundary cases |
 
@@ -250,7 +298,9 @@ Kept short and honest — these are deliberate scope decisions, not oversights.
 - **One artwork set per movie** (poster, backdrop, still) with add and remove. No galleries, no
   reordering, no person photos.
 - **Artwork is stored on the local filesystem**, so a multi-instance deployment would need shared
-  storage or object storage.
+  storage or object storage. Files are deleted only after the database transaction commits, so a
+  disk failure can leave an unreferenced file behind; setting up a sweep for those is out of scope
+  here.
 - **Schema is managed by Hibernate `ddl-auto: update`.** A real deployment would use Flyway or
   Liquibase migrations.
 - **The combined `search(query:)` field is implemented and tested at the API level but unused by the

@@ -1,8 +1,12 @@
 package com.cinebase.movieservice.config
 
 import jakarta.annotation.PostConstruct
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionSynchronization
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.multipart.MultipartFile
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -15,6 +19,8 @@ import java.util.UUID
  */
 @Component
 class UploadStorage(properties: StorageProperties) {
+
+    private val log = LoggerFactory.getLogger(javaClass)
 
     val uploadsDir: Path = Paths.get(properties.uploadsDir).toAbsolutePath().normalize()
 
@@ -46,6 +52,26 @@ class UploadStorage(properties: StorageProperties) {
         val target = uploadsDir.resolve(url.removePrefix(prefix)).normalize()
         if (!target.startsWith(uploadsDir)) return false
         return Files.deleteIfExists(target)
+    }
+
+    fun deleteByUrlAfterCommit(url: String) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            deleteQuietly(url)
+            return
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+            object : TransactionSynchronization {
+                override fun afterCommit() = deleteQuietly(url)
+            },
+        )
+    }
+
+    private fun deleteQuietly(url: String) {
+        try {
+            deleteByUrl(url)
+        } catch (ex: IOException) {
+            log.warn("Could not delete artwork file '{}': {}", url, ex.message)
+        }
     }
 
     companion object {

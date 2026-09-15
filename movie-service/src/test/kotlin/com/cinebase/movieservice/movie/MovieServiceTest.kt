@@ -4,7 +4,9 @@ import com.cinebase.movieservice.artwork.Artwork
 import com.cinebase.movieservice.artwork.ArtworkRepository
 import com.cinebase.movieservice.artwork.ArtworkType
 import com.cinebase.movieservice.config.UploadStorage
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
@@ -25,8 +27,8 @@ import java.util.Optional
  * Domain rules of [MovieService] in isolation.
  *
  * Only behaviour that lives *in the service* is asserted here: text trimming, the existence
- * checks, the pagination clamp, the blank-vs-present search branch and the order in which
- * artwork is cleaned up. Plain repository delegation and the end-to-end paths are covered by
+ * checks, the pagination clamp, the blank-vs-present search branch and the artwork cleanup it
+ * hands to storage. Plain repository delegation and the end-to-end paths are covered by
  * `MovieServiceGraphQlIntegrationTest`.
  */
 class MovieServiceTest {
@@ -124,7 +126,7 @@ class MovieServiceTest {
     // --- delete ---
 
     @Test
-    fun `delete removes the stored files, the artwork rows and the movie`() {
+    fun `delete drops the rows and schedules every stored file for removal`() {
         val movie = movie()
         every { movies.findById(1L) } returns Optional.of(movie)
         every { artworks.findByMovieIdOrderById(1L) } returns listOf(
@@ -132,11 +134,10 @@ class MovieServiceTest {
             Artwork(id = 11, movieId = 1, url = "/uploads/artworks/b.png", type = ArtworkType.BACKDROP),
         )
         val deleted = mutableListOf<String>()
-        every { storage.deleteByUrl(capture(deleted)) } returns true
+        every { storage.deleteByUrlAfterCommit(capture(deleted)) } just Runs
 
         service.delete(1L)
 
-        // Files are removed before their rows are dropped, and every artwork is cleaned up.
         assertThat(deleted).containsExactly("/uploads/artworks/a.png", "/uploads/artworks/b.png")
         verify { artworks.deleteByMovieId(1L) }
         verify { movies.delete(movie) }

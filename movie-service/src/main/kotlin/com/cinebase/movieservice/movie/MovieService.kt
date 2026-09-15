@@ -55,10 +55,10 @@ class MovieService(
     @Transactional
     fun delete(id: Long) {
         val movie = get(id)
-        // Remove artwork files from disk before dropping their rows.
-        artworks.findByMovieIdOrderById(id).forEach { storage.deleteByUrl(it.url) }
+        val artworkUrls = artworks.findByMovieIdOrderById(id).map { it.url }
         artworks.deleteByMovieId(id)
         movies.delete(movie)
+        artworkUrls.forEach { storage.deleteByUrlAfterCommit(it) }
     }
 
     /** Keeps the denormalised cover `artworkUrl` in sync with the movie's first artwork. */

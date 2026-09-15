@@ -34,7 +34,7 @@ Everything has a working default, so local development needs no environment vari
 
 ```bash
 ./gradlew bootRun     # GraphQL on http://localhost:8081/graphql
-./gradlew test        # 75 tests
+./gradlew test        # 79 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -88,18 +88,25 @@ channel then treats the name as a DNS host.
   the uploads directory, so a bad database value can never remove an unrelated file.
 - A movie's cover (`artworkUrl`) is kept in step with its artwork rows, so removing the cover promotes
   the next artwork instead of leaving a broken image.
+- **File deletions are not part of the database transaction.** A local disk cannot join a
+  PostgreSQL commit, so deleting a movie or an artwork only *schedules* its files: the rows are
+  dropped inside the transaction and `UploadStorage` removes the files from disk after it commits,
+  logging rather than throwing if the disk refuses. The two can therefore never fail in the
+  expensive direction — a rolled-back delete leaves every file exactly where it was, so a surviving
+  row always still points at a real file — and the worst case is an unreferenced file left on disk,
+  which no client can see.
 
 ## Tests
 
 ```bash
-./gradlew test        # 75 tests, 5 classes
+./gradlew test        # 79 tests, 5 classes
 ```
 
 | File | Tests | Focus |
 | --- | --- | --- |
-| `movie/MovieServiceTest` | 21 | create/trim, update, delete ordering, search, pagination clamps, sorting, cover sync |
+| `movie/MovieServiceTest` | 21 | create/trim, update, delete, search, pagination clamps, sorting, cover sync |
 | `artwork/ArtworkServiceTest` | 15 | upload gate (empty, oversize, wrong type), extension mapping, cover promotion, removal |
-| `config/UploadStorageTest` | 5 | unique names, byte round-trip, deletes, path-traversal refusals |
+| `config/UploadStorageTest` | 9 | unique names, byte round-trip, deletes, after-commit timing, path-traversal refusals |
 | `grpc/PersonClientTest` | 3 | in-process gRPC: response mapping, request mapping, error propagation |
 | `MovieServiceGraphQlIntegrationTest` | 31 | GraphQL end to end via `GraphQlTester` on H2, with a mocked gRPC client — CRUD, validation, search, pagination, sorting, artwork, role delegation and the error contract |
 

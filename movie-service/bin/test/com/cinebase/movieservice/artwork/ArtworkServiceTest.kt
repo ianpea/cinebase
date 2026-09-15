@@ -19,8 +19,8 @@ import org.springframework.web.multipart.MultipartFile
 import java.util.Optional
 
 /**
- * Upload rules of [ArtworkService] in isolation: the type/size/emptiness gate, the order in which
- * files and rows are touched, and the cover-artwork bookkeeping after an upload or a removal.
+ * Upload rules of [ArtworkService] in isolation: the type/size/emptiness gate, the file cleanup it
+ * hands to storage, and the cover-artwork bookkeeping after an upload or a removal.
  *
  * The happy path is also exercised through GraphQL by `MovieServiceGraphQlIntegrationTest`, but the
  * rejection cases can only be produced cheaply here.
@@ -40,8 +40,6 @@ class ArtworkServiceTest {
         every { movies.get(1L) } returns Movie(id = 1, title = "Interstellar")
         // Nothing is stored under the movie unless a test says otherwise.
         every { artworks.findByMovieIdOrderById(any()) } returns emptyList()
-        // Boolean-returning, so `relaxUnitFun` does not cover it.
-        every { storage.deleteByUrl(any()) } returns true
     }
 
     private fun file(
@@ -136,7 +134,7 @@ class ArtworkServiceTest {
     // --- remove ---
 
     @Test
-    fun `remove deletes the row and the file, then promotes the next artwork to cover`() {
+    fun `remove deletes the row and schedules the file, then promotes the next artwork to cover`() {
         val poster = artwork(id = 10, url = "/uploads/artworks/a.png")
         val backdrop = artwork(id = 11, url = "/uploads/artworks/b.png")
         every { artworks.findById(10L) } returns Optional.of(poster)
@@ -145,7 +143,7 @@ class ArtworkServiceTest {
         service.remove(10L)
 
         verify { artworks.delete(poster) }
-        verify { storage.deleteByUrl("/uploads/artworks/a.png") }
+        verify { storage.deleteByUrlAfterCommit("/uploads/artworks/a.png") }
         verify { movies.updateCoverArtwork(1L, "/uploads/artworks/b.png") }
     }
 
@@ -167,7 +165,7 @@ class ArtworkServiceTest {
 
         assertThat(failure).hasMessage("Artwork 404 not found")
         verify(exactly = 0) { artworks.delete(any()) }
-        verify(exactly = 0) { storage.deleteByUrl(any()) }
+        verify(exactly = 0) { storage.deleteByUrlAfterCommit(any()) }
     }
 
     // --- listing ---
