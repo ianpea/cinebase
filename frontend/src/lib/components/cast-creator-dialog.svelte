@@ -45,6 +45,7 @@
 	let matches = $state<Person[]>([]);
 	let loadingPeople = $state(false);
 	let peopleError = $state<string | null>(null);
+	let showMatches = $state(true);
 	let selected = $state<{ id: string; name: string } | null>(null);
 	let detail = $state('');
 	let saving = $state(false);
@@ -55,6 +56,7 @@
 		if (!open) return;
 		personQuery = '';
 		error = null;
+		showMatches = true;
 		selected = existing ? { id: existing.personId, name: existing.personName } : null;
 		detail = existing?.detail ?? '';
 	});
@@ -137,38 +139,44 @@
 						bind:value={personQuery}
 						placeholder="Search people by name…"
 						autocomplete="off"
+						oninput={() => (showMatches = true)}
 					/>
 
-					<div class="max-h-52 overflow-y-auto rounded-md border">
-						{#if loadingPeople}
-							<div class="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
-								<Spinner /> Searching people…
-							</div>
-						{:else if peopleError}
-							<p class="px-3 py-3 text-sm text-destructive">{peopleError}</p>
-						{:else if matches.length === 0}
-							<p class="px-3 py-3 text-sm text-muted-foreground">
-								No people found. Add people on the <a href="/people" class="underline">People page</a>.
-							</p>
-						{:else}
-							<ul class="divide-y">
-								{#each matches as person (person.id)}
-									<li>
-										<button
-											type="button"
-											class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-											class:bg-muted={selected?.id === person.id}
-											aria-pressed={selected?.id === person.id}
-											onclick={() => (selected = { id: person.id, name: person.name })}
-										>
-											<UserIcon class="size-4 text-muted-foreground" />
-											<span class="truncate">{person.name}</span>
-										</button>
-									</li>
-								{/each}
-							</ul>
-						{/if}
-					</div>
+					{#if showMatches}
+						<div class="max-h-52 overflow-y-auto rounded-md border">
+							{#if loadingPeople}
+								<div class="flex items-center gap-2 px-3 py-3 text-sm text-muted-foreground">
+									<Spinner /> Searching people…
+								</div>
+							{:else if peopleError}
+								<p class="px-3 py-3 text-sm text-destructive">{peopleError}</p>
+							{:else if matches.length === 0}
+								<p class="px-3 py-3 text-sm text-muted-foreground">
+									No people found. Add people on the <a href="/people" class="underline">People page</a>.
+								</p>
+							{:else}
+								<ul class="divide-y">
+									{#each matches as person (person.id)}
+										<li>
+											<button
+												type="button"
+												class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
+												class:bg-muted={selected?.id === person.id}
+												aria-pressed={selected?.id === person.id}
+												onclick={() => {
+													selected = { id: person.id, name: person.name };
+													showMatches = false;
+												}}
+											>
+												<UserIcon class="size-4 text-muted-foreground" />
+												<span class="truncate">{person.name}</span>
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</div>
+					{/if}
 
 					{#if selected}
 						<p class="text-sm text-muted-foreground">

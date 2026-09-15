@@ -27,7 +27,7 @@ Everything has a working default, so local development needs no environment vari
 
 ```bash
 ./gradlew bootRun     # gRPC on port 9090
-./gradlew test        # 74 tests
+./gradlew test        # 84 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -79,16 +79,16 @@ consistent error to the user.
 ## Tests
 
 ```bash
-./gradlew test        # 74 tests, 5 classes
+./gradlew test        # 84 tests, 5 classes
 ```
 
 | File | Tests | Focus |
 | --- | --- | --- |
-| `person/PersonServiceTest` | 19 | create/trim, update, delete order, pagination clamps, search limits |
+| `person/PersonServiceTest` | 24 | create/trim, duplicate name + birth date rejection, update, delete order, pagination clamps, search limits, case-insensitive name sorting |
 | `cast/CastServiceTest` | 7 | add, update character name, remove, missing person |
 | `creator/CreatorServiceTest` | 6 | add, update job, remove, missing person |
 | `grpc/PersonGrpcServiceTest` | 17 | proto ↔ domain mapping, batched lookup, and the full gRPC status contract |
-| `PersonServiceGrpcIntegrationTest` | 25 | real gRPC server + H2: person CRUD, case-insensitive search, role add/update/remove, not-found wiring, role cleanup on person deletion, per-movie role isolation |
+| `PersonServiceGrpcIntegrationTest` | 30 | real gRPC server + H2: person CRUD, duplicate identity rejection, case-insensitive search, role add/update/remove, not-found wiring, role cleanup on person deletion, per-movie role isolation |
 
 Two layers of gRPC testing are used on purpose: an in-process server with mocked services for the
 mapping and status contract, and a Spring Boot test against the real server and database for the

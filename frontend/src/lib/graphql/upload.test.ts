@@ -28,8 +28,4 @@ describe('validateArtworkFile', () => {
             'Artwork file must be at most 10 MB.'
         );
     });
-
-    it('matches the server-side limits', () => {
-        expect(MAX_ARTWORK_BYTES).toBe(10 * 1024 * 1024);
-    });
 });

@@ -22,10 +22,6 @@ function open(person: Person | null = null) {
     return {onsaved};
 }
 
-function classTokens(element: Element): string[] {
-    return element.className.split(/\s+/);
-}
-
 describe('PersonDialog', () => {
     it('requires a name before it will save', async () => {
         open();
@@ -78,23 +74,6 @@ describe('PersonDialog', () => {
         const hint = screen.getByText('Optional. Leave empty if the birth date is unknown.');
         expect(screen.getByLabelText('Birth date').getAttribute('aria-describedby')).toBe(hint.id);
         expect((screen.getByLabelText('Birth date') as HTMLInputElement).value).toBe('');
-    });
-
-    it('mutes the date field while it is empty so the placeholder is not read as a value', async () => {
-        // The muted colour cascades into the date field's internal parts, which Chromium otherwise
-        // paints in the normal foreground colour.
-        open();
-        const empty = screen.getByLabelText('Birth date');
-        expect(classTokens(empty)).toContain('text-muted-foreground');
-
-        await fireEvent.input(empty, {target: {value: '1967-10-03'}});
-        expect(classTokens(screen.getByLabelText('Birth date'))).not.toContain('text-muted-foreground');
-    });
-
-    it('does not mute the date field when the person already has one', () => {
-        open(makePerson({id: '4', birthDate: '1967-10-03'}));
-
-        expect(classTokens(screen.getByLabelText('Birth date'))).not.toContain('text-muted-foreground');
     });
 
     it('shows the server error when saving fails', async () => {

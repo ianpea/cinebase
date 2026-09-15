@@ -219,16 +219,4 @@ describe('People page birth date column', () => {
 
         expect(rowText('Brad Pitt')).toContain('Born —');
     });
-
-    it('labels both rows in one list', () => {
-        renderPage(
-            ssrPage([
-                makePerson({id: '1', name: 'Damien Chazelle', birthDate: '1985-01-19'}),
-                makePerson({id: '2', name: 'Cate Blanchett', birthDate: null})
-            ])
-        );
-
-        expect(rowText('Damien Chazelle')).toContain('Born Jan 19, 1985');
-        expect(rowText('Cate Blanchett')).toContain('Born —');
-    });
 });

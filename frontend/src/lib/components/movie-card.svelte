@@ -33,7 +33,7 @@
 	</a>
 
 	<CardContent class="gap-2 p-3">
-		<div class="flex items-start justify-between gap-2">
+		<div class="flex items-start justify-between gap-2 pb-2">
 			<div class="min-w-0">
 				<a href={`/movies/${movie.id}`} class="block truncate font-medium hover:underline">
 					{movie.title}

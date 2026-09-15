@@ -14,7 +14,7 @@ The Cinebase UI: a SvelteKit app in TypeScript that renders the movie and people
 npm install
 npm run dev        # http://localhost:5173, proxies /graphql and /uploads to localhost:8081
 npm run build      # production build via adapter-node
-npm test           # 57 tests
+npm test           # 70 tests
 npm run check      # svelte-check
 ```
 

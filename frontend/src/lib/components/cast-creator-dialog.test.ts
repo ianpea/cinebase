@@ -66,6 +66,33 @@ describe('CastCreatorDialog', () => {
         });
     });
 
+    it('closes the search results once a person is chosen', async () => {
+        open();
+        await fireEvent.click(await screen.findByRole('button', {name: 'Matthew McConaughey'}));
+
+        // The dropdown collapses and only the confirmation line remains.
+        expect(screen.queryByRole('button', {name: 'Matthew McConaughey'})).toBeNull();
+        expect(screen.getByText(/Selected:/).textContent).toContain('Matthew McConaughey');
+    });
+
+    it('reopens the search results when the user types again, and switches the selection', async () => {
+        mockedRequest.mockResolvedValue(
+            personPage(makePerson(), makePerson({id: '8', name: 'Jessica Chastain'}))
+        );
+        mockedMutate.mockResolvedValueOnce({} as never);
+        open();
+        await fireEvent.click(await screen.findByRole('button', {name: 'Matthew McConaughey'}));
+
+        await fireEvent.input(screen.getByLabelText('Person'), {target: {value: 'jessica'}});
+        await fireEvent.click(await screen.findByRole('button', {name: 'Jessica Chastain'}));
+        await fireEvent.input(screen.getByLabelText('Character name'), {target: {value: 'Murph'}});
+        await submitForm();
+
+        expect(mockedMutate).toHaveBeenCalledExactlyOnceWith(expect.anything(), {
+            input: {movieId: '1', personId: '8', characterName: 'Murph'}
+        });
+    });
+
     it('asks for a person before it will save', async () => {
         open();
         await findPerson('Matthew McConaughey');
