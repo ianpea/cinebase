@@ -1,0 +1,89 @@
+name: cinebase
+
+services:
+  # ---------------------------------------------------------------------------
+  # One PostgreSQL container hosts both databases. Each service still owns its
+  # own schema and neither ever reads the other's tables — cross-service data
+  # only travels over gRPC.
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-cinebase}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cinebase}
+      # POSTGRES_DB only creates this one; the init script adds the second.
+      POSTGRES_DB: ${MOVIE_DB_NAME:-movie_service}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-cinebase} -d ${MOVIE_DB_NAME:-movie_service}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  person-service:
+    build:
+      context: .
+      dockerfile: person-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${PERSON_DB_NAME:-person_service}
+      DB_USERNAME: ${DB_USERNAME:-cinebase}
+      DB_PASSWORD: ${DB_PASSWORD:-cinebase}
+      GRPC_PORT: "9090"
+    ports:
+      - "${PERSON_HTTP_PORT:-8082}:8082"
+      - "${PERSON_GRPC_PORT:-9090}:9090"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  movie-service:
+    build:
+      context: .
+      dockerfile: movie-service/Dockerfile
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/${MOVIE_DB_NAME:-movie_service}
+      DB_USERNAME: ${DB_USERNAME:-cinebase}
+      DB_PASSWORD: ${DB_PASSWORD:-cinebase}
+      # Service-to-service traffic stays on the compose network: the value is the
+      # service name, never localhost. See spring.grpc.client.channel.person.target.
+      GRPC_HOST: person-service
+      GRPC_PORT: "9090"
+      UPLOADS_DIR: /app/uploads
+    ports:
+      - "${MOVIE_HTTP_PORT:-8081}:8081"
+    volumes:
+      # Artwork on the host, so files survive `docker compose down` and rebuilds.
+      - ./data/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      person-service:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      # Read by src/hooks.server.ts, which forwards /graphql and /uploads here.
+      # This replaces the Vite dev-server proxy used during local development.
+      MOVIE_SERVICE_ORIGIN: http://movie-service:8081
+      # adapter-node: ORIGIN is required for POST requests (CSRF check), HOST/PORT
+      # bind the server, and BODY_SIZE_LIMIT must be raised above its 512 KB
+      # default or artwork uploads fail with 413 before they reach the backend.
+      ORIGIN: http://localhost:${FRONTEND_PORT:-3000}
+      HOST: 0.0.0.0
+      PORT: "3000"
+      BODY_SIZE_LIMIT: 12M
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - movie-service
+
+volumes:
+  # Named volume, so the databases survive `docker compose down`.
+  postgres-data:

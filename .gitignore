@@ -1,2 +1,9 @@
 # Plans
 genesis-plan.md
+
+# Docker
+.env
+
+# Host-side artwork volume, kept as an empty directory via .gitkeep
+data/uploads/*
+!data/uploads/.gitkeep

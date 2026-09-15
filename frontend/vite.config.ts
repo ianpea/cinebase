@@ -1,5 +1,5 @@
 import tailwindcss from '@tailwindcss/vite';
-import adapter from '@sveltejs/adapter-auto';
+import adapter from '@sveltejs/adapter-node';
 import {sveltekit} from '@sveltejs/kit/vite';
 import {defineConfig} from 'vitest/config';
 
@@ -12,10 +12,18 @@ export default defineConfig(({mode}) => ({
 				runes: ({filename}) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true)
 			},
 
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter()
+			// adapter-node produces a standalone Node server in build/ that Docker runs.
+			adapter: adapter({out: 'build'}),
+
+			// `/graphql` and `/uploads` are not SvelteKit routes — `src/hooks.server.ts` passes
+			// them straight through to movie-service. SvelteKit's CSRF check guards its own form
+			// actions using ambient cookies, and this app has none (no auth by design), so the
+			// check protects nothing here. Left on, it rejects the multipart artwork upload
+			// whenever the browser's Origin differs from the configured ORIGIN — e.g. reaching the
+			// app at 127.0.0.1:3000 instead of localhost:3000 — while JSON queries keep working,
+			// which is a confusing failure to debug. `'*'` is the documented way to switch the
+			// origin check off (`checkOrigin` is deprecated in its favour).
+			csrf: {trustedOrigins: ['*']}
 		})
 	],
 	server: {

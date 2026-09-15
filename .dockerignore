@@ -1,0 +1,23 @@
+# Applied to the two Java build contexts, whose context is the repository root.
+
+# VCS / editors / OS noise
+.git
+.github
+.vscode
+.DS_Store
+
+# Not needed to build either service, and kept out so edits here do not
+# invalidate the Gradle layer cache.
+frontend
+genesis-plan.md
+Technical Assessment.pdf
+
+# Build output from local runs — always rebuilt inside the image.
+**/build/
+**/bin/
+**/.gradle/
+**/.kotlin/
+**/uploads/
+
+# Host-side artwork volume
+data/
