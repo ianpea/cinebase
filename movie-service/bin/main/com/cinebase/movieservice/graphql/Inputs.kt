@@ -77,17 +77,21 @@ enum class SortDirection {
 }
 
 /** Translates the GraphQL sort input into a Spring Data [Sort] on movie entity properties. */
-fun MovieSortInput.toSort(): Sort = Sort.by(
-    when (direction) {
-        SortDirection.ASC -> Sort.Direction.ASC
-        SortDirection.DESC -> Sort.Direction.DESC
-    },
-    when (field) {
-        MovieSortField.TITLE -> "title"
-        MovieSortField.RELEASE_YEAR -> "releaseYear"
-        MovieSortField.CREATED_AT -> "createdAt"
-    },
-)
+fun MovieSortInput.toSort(): Sort {
+    val order = when (field) {
+        // Titles are free text, so sort them case-insensitively. The database collation cannot be
+        // relied on: Postgres on Alpine compares strings by code point, which puts "Zulu" before "alpha".
+        MovieSortField.TITLE -> Sort.Order.by("title").ignoreCase()
+        MovieSortField.RELEASE_YEAR -> Sort.Order.by("releaseYear")
+        MovieSortField.CREATED_AT -> Sort.Order.by("createdAt")
+    }
+    return Sort.by(order.with(direction.toSortDirection()))
+}
+
+private fun SortDirection.toSortDirection(): Sort.Direction = when (this) {
+    SortDirection.ASC -> Sort.Direction.ASC
+    SortDirection.DESC -> Sort.Direction.DESC
+}
 
 data class MoviePageDto(
     val items: List<Movie>,

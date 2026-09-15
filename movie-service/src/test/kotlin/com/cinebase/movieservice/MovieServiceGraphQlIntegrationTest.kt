@@ -306,6 +306,23 @@ class MovieServiceGraphQlIntegrationTest {
     }
 
     @Test
+    fun `movies sorts titles case-insensitively`() {
+        val prefix = uniqueTitle("Case")
+        listOf("Zulu", "alpha", "Bravo").forEach { storeMovie("$prefix $it") }
+
+        val titles = tester.document(MOVIES)
+            .variable("search", prefix)
+            .variable("sort", mapOf("field" to "TITLE", "direction" to "ASC"))
+            .execute()
+            .path("movies.items[*].title")
+            .entityList<String>()
+            .get()
+
+        // Code-point ordering would return Bravo, Zulu, alpha; lowercasing the sort key does not.
+        assertThat(titles).containsExactly("$prefix alpha", "$prefix Bravo", "$prefix Zulu")
+    }
+
+    @Test
     fun `movies clamps an oversized page size to the maximum`() {
         tester.document(MOVIES)
             .variable("size", 5_000)

@@ -4,6 +4,7 @@ import com.cinebase.personservice.cast.MovieCastRepository
 import com.cinebase.personservice.creator.MovieCreatorRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -17,7 +18,10 @@ class PersonService(
 ) {
 
     fun list(search: String?, page: Int, size: Int): Page<Person> {
-        val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, 100))
+        // Names are free text, so sort them case-insensitively. The database collation cannot be
+        // relied on: Postgres on Alpine compares strings by code point, which puts "Zulu" before "alpha".
+        val sort = Sort.by(Sort.Order.by("name").ignoreCase())
+        val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, 100), sort)
         return if (search.isNullOrBlank()) {
             people.findAll(pageable)
         } else {

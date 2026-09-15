@@ -16,6 +16,7 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
 import java.time.Instant
 import java.time.LocalDate
 import java.util.Optional
@@ -250,6 +251,18 @@ class PersonServiceTest {
 
         assertThat(result.content).hasSize(1)
         verify(exactly = 0) { people.findByNameContainingIgnoreCase(any(), any()) }
+    }
+
+    @Test
+    fun `list sorts people by name, ignoring case`() {
+        val pageable = slot<Pageable>()
+        every { people.findAll(capture(pageable)) } returns pageOf()
+
+        service.list(search = null, page = 0, size = 20)
+
+        val order = pageable.captured.sort.getOrderFor("name")
+        assertThat(order?.direction).isEqualTo(Sort.Direction.ASC)
+        assertThat(order?.isIgnoreCase).isTrue()
     }
 
     // --- search ---
