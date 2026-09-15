@@ -25,11 +25,10 @@ export function movieServiceGraphqlUrl(origin = env.MOVIE_SERVICE_ORIGIN ?? DEFA
 }
 
 /**
- * Runs one query from a load function and resolves with its data, throwing the same kind of
- * `Error` the browser client throws so the caller's `catch` can show one message either way.
- *
- * `fetch` is the load's `fetch`. No cache exchange is involved: a load runs once per request, so
- * there is nothing a cache could ever hit.
+ * Runs a GraphQL query during SSR using the load function's `fetch`.
+ * A lightweight urql client is created per call to reuse GraphQL serialization,
+ * response parsing and error handling consistently with the browser client.
+ * No cache is needed because each load runs once per request.
  */
 export async function serverQuery<Doc extends TypedDocumentNode<any, any>>(
     fetch: typeof globalThis.fetch,
