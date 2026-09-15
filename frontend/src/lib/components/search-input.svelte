@@ -5,20 +5,32 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 
 	/**
-	 * Search field with debounced output: `value` only updates once typing pauses, so the parent
-	 * can query on every `value` change without hitting the API on each keystroke.
+	 * Search field with debounced output: `value` and `onValueChange` only update once typing
+	 * pauses, so the parent can query on every change without hitting the API on each keystroke.
+	 * A parent either binds `value` or passes `onValueChange`; both report the debounced text.
 	 */
 	let {
 		value = $bindable(''),
+		onValueChange,
 		placeholder = 'Search…',
 		delay = 300
-	}: { value?: string; placeholder?: string; delay?: number } = $props();
+	}: {
+		value?: string;
+		onValueChange?: (value: string) => void;
+		placeholder?: string;
+		delay?: number;
+	} = $props();
 
 	let text = $state(value);
 
 	$effect(() => {
 		const next = text;
-		const timer = setTimeout(() => (value = next), delay);
+		const timer = setTimeout(() => {
+			// Unchanged text (including this effect's first run) is not a search to run again.
+			if (next === value) return;
+			value = next;
+			onValueChange?.(next);
+		}, delay);
 		return () => clearTimeout(timer);
 	});
 </script>

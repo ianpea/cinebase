@@ -1,6 +1,5 @@
 <script lang="ts">
 	import PlusIcon from '@lucide/svelte/icons/plus';
-	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import type { PageProps } from './$types';
 	import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
@@ -76,26 +75,33 @@
 		}
 	}
 
-	// The first run of this effect is hydration, whose inputs are the ones the server already
-	// fetched; running again would repeat that request. Skipping exactly one run keeps every later
-	// change (search, sort, page, or an explicit refetch after a mutation) going to the network.
-	let skippingInitialLoad = true;
+	// Every user action fetches through one of the handlers below, which keeps the flow explicit:
+	// changing the search or the sorting starts again from page 0, paging keeps the current filters.
+	// Nothing here runs on hydration, so the result `+page.server.ts` already fetched is never
+	// requested a second time.
 
-	// Reload for the current search, sort and page. The search input already debounces.
-	$effect(() => {
-		void [search, sortField, sortDirection, page];
-		if (skippingInitialLoad) {
-			skippingInitialLoad = false;
-			return;
-		}
+	function onSearchChange(value: string) {
+		search = value;
+		page = 0;
 		void load();
-	});
+	}
 
-	// Any change to the query or sorting starts again from the first page.
-	$effect(() => {
-		void [search, sortField, sortDirection];
-		untrack(() => (page = 0));
-	});
+	function onSortFieldChange(value: MovieSortField) {
+		sortField = value;
+		page = 0;
+		void load();
+	}
+
+	function onSortDirectionChange(value: SortDirection) {
+		sortDirection = value;
+		page = 0;
+		void load();
+	}
+
+	function onPageChange(value: number) {
+		page = value;
+		void load();
+	}
 
 	function addMovie() {
 		editing = null;
@@ -147,7 +153,11 @@
 
 	<div class="flex flex-wrap items-end gap-3">
 		<div class="min-w-56 flex-1">
-			<SearchInput bind:value={search} placeholder="Search movies by title…" />
+			<SearchInput
+				value={search}
+				onValueChange={onSearchChange}
+				placeholder="Search movies by title…"
+			/>
 		</div>
 		<div class="space-y-1">
 			<Label for="sort-field" class="text-xs text-muted-foreground">Sort by</Label>
@@ -155,7 +165,7 @@
 				type="single"
 				items={SORT_FIELDS}
 				value={sortField}
-				onValueChange={(value) => value && (sortField = value as MovieSortField)}
+				onValueChange={(value) => value && onSortFieldChange(value as MovieSortField)}
 			>
 				<Select.Trigger id="sort-field"><Select.Value placeholder="Sort by" /></Select.Trigger>
 				<Select.Content>
@@ -171,7 +181,7 @@
 				type="single"
 				items={SORT_DIRECTIONS}
 				value={sortDirection}
-				onValueChange={(value) => value && (sortDirection = value as SortDirection)}
+				onValueChange={(value) => value && onSortDirectionChange(value as SortDirection)}
 			>
 				<Select.Trigger id="sort-direction"><Select.Value placeholder="Order" /></Select.Trigger>
 				<Select.Content>
@@ -205,7 +215,8 @@
 			{/each}
 		</div>
 		<Pagination
-			bind:page
+			page={page}
+			onPageChange={onPageChange}
 			totalPages={result.totalPages}
 			total={result.total}
 			itemLabel="movie"

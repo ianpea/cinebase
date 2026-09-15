@@ -5,6 +5,7 @@
 
 	let {
 		page = $bindable(0),
+		onPageChange,
 		totalPages,
 		total,
 		itemLabel = 'item',
@@ -12,6 +13,7 @@
 		disabled = false
 	}: {
 		page?: number;
+		onPageChange?: (page: number) => void;
 		totalPages: number;
 		total: number;
 		itemLabel?: string;
@@ -22,6 +24,11 @@
 	// The API is 0-based and pages are clamped there too, so guard the edges here as well.
 	const canPrevious = $derived(page > 0);
 	const canNext = $derived(page + 1 < totalPages);
+
+	function goTo(next: number) {
+		page = next;
+		onPageChange?.(next);
+	}
 </script>
 
 <div class="flex flex-wrap items-center justify-between gap-3">
@@ -37,7 +44,7 @@
 				variant="outline"
 				size="sm"
 				disabled={disabled || !canPrevious}
-				onclick={() => (page = page - 1)}
+				onclick={() => goTo(page - 1)}
 			>
 				<ChevronLeftIcon />
 				Previous
@@ -46,7 +53,7 @@
 				variant="outline"
 				size="sm"
 				disabled={disabled || !canNext}
-				onclick={() => (page = page + 1)}
+				onclick={() => goTo(page + 1)}
 			>
 				Next
 				<ChevronRightIcon />

@@ -110,6 +110,33 @@ describe('Movies page', () => {
         });
     });
 
+    it('restarts from the first page when the search changes while paged, in one request', async () => {
+        mockedRequest
+            .mockResolvedValueOnce(moviesResponse([makeMovie({title: 'Page Two Movie'})], 30))
+            .mockResolvedValueOnce(moviesResponse([makeMovie({title: 'Batman Begins'})]));
+        const movies = Array.from({length: 30}, (_, i) =>
+            makeMovie({id: String(i), title: `Movie ${i}`})
+        );
+        renderPage(ssrPage(movies));
+
+        await fireEvent.click(screen.getByRole('button', {name: /Next/}));
+        await waitFor(() => expect(screen.getByText('Page Two Movie')).toBeTruthy());
+
+        await fireEvent.input(screen.getByLabelText('Search movies by title…'), {
+            target: {value: 'batman'}
+        });
+        await waitFor(() => expect(screen.getByText('Batman Begins')).toBeTruthy());
+
+        // Paging, then the search: exactly two requests, and the new search starts at page 0.
+        expect(mockedRequest).toHaveBeenCalledTimes(2);
+        expect(mockedRequest).toHaveBeenLastCalledWith(expect.anything(), {
+            search: 'batman',
+            sort: {field: 'CREATED_AT', direction: 'DESC'},
+            page: 0,
+            size: 12
+        });
+    });
+
     it('shows the server load failure and retries it from the browser', async () => {
         mockedRequest.mockResolvedValue(moviesResponse([makeMovie({title: 'Interstellar'})]));
         renderPage({movies: null, moviesError: 'movie-service is unreachable'});
