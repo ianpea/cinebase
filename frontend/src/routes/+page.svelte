@@ -75,11 +75,6 @@
 		}
 	}
 
-	// Every user action fetches through one of the handlers below, which keeps the flow explicit:
-	// changing the search or the sorting starts again from page 0, paging keeps the current filters.
-	// Nothing here runs on hydration, so the result `+page.server.ts` already fetched is never
-	// requested a second time.
-
 	function onSearchChange(value: string) {
 		search = value;
 		page = 0;

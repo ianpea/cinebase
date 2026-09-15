@@ -2,7 +2,6 @@
 	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
-	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import type { PageProps } from './$types';
 	import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
@@ -56,25 +55,16 @@
 		}
 	}
 
-	// The first run of this effect is hydration, whose inputs are the ones the server already
-	// fetched; running again would repeat that request. Skipping exactly one run keeps every later
-	// change (search, page, or an explicit refetch after a mutation) going to the network.
-	let skippingInitialLoad = true;
-
-	$effect(() => {
-		void [search, page];
-		if (skippingInitialLoad) {
-			skippingInitialLoad = false;
-			return;
-		}
+	function onSearchChange(value: string) {
+		search = value;
+		page = 0;
 		void load();
-	});
+	}
 
-	// A new search always starts from the first page.
-	$effect(() => {
-		void search;
-		untrack(() => (page = 0));
-	});
+	function onPageChange(value: number) {
+		page = value;
+		void load();
+	}
 
 	function addPerson() {
 		editing = null;
@@ -127,7 +117,11 @@
 	</div>
 
 	<div class="max-w-md">
-		<SearchInput bind:value={search} placeholder="Search people by name…" />
+		<SearchInput
+			value={search}
+			onValueChange={onSearchChange}
+			placeholder="Search people by name…"
+		/>
 	</div>
 
 	{#if loading && !result}
@@ -174,7 +168,8 @@
 			{/each}
 		</ul>
 		<Pagination
-			bind:page
+			page={page}
+			onPageChange={onPageChange}
 			totalPages={result.totalPages}
 			total={result.total}
 			itemLabel="person"

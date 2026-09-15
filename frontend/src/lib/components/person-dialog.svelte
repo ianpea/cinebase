@@ -78,7 +78,16 @@
 			</div>
 			<div class="space-y-2">
 				<Label for="person-birth-date">Birth date</Label>
-				<Input id="person-birth-date" type="date" bind:value={birthDate} />
+				<Input
+					id="person-birth-date"
+					type="date"
+					bind:value={birthDate}
+					aria-describedby="person-birth-date-hint"
+					class={birthDate ? undefined : 'text-muted-foreground'}
+				/>
+				<p id="person-birth-date-hint" class="text-xs text-muted-foreground">
+					Optional. Leave empty if the birth date is unknown.
+				</p>
 			</div>
 			<div class="space-y-2">
 				<Label for="person-biography">Biography</Label>
