@@ -1,11 +1,8 @@
 name: cinebase
 
 services:
-  # ---------------------------------------------------------------------------
-  # One PostgreSQL container hosts both databases. Each service still owns its
-  # own schema and neither ever reads the other's tables — cross-service data
-  # only travels over gRPC.
-  # ---------------------------------------------------------------------------
+  # Both databases share this server; each service still owns its own tables, so
+  # cross-service data only travels over gRPC.
   postgres:
     image: postgres:17-alpine
     environment:
@@ -48,15 +45,14 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/${MOVIE_DB_NAME:-movie_service}
       DB_USERNAME: ${DB_USERNAME:-cinebase}
       DB_PASSWORD: ${DB_PASSWORD:-cinebase}
-      # Service-to-service traffic stays on the compose network: the value is the
-      # service name, never localhost. See spring.grpc.client.channel.person.target.
+      # Compose network target: the service name, never localhost.
       GRPC_HOST: person-service
       GRPC_PORT: "9090"
       UPLOADS_DIR: /app/uploads
     ports:
       - "${MOVIE_HTTP_PORT:-8081}:8081"
     volumes:
-      # Artwork on the host, so files survive `docker compose down` and rebuilds.
+      # Host bind mount, so artwork survives rebuilds and `docker compose down`.
       - ./data/uploads:/app/uploads
     depends_on:
       postgres:
@@ -69,14 +65,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     environment:
-      # Where the frontend server reaches movie-service: `src/hooks.server.ts` forwards browser
-      # requests for /graphql and /uploads here, and SSR loads query it directly through
-      # src/lib/server/graphql.ts. The browser itself keeps using the relative /graphql.
-      # This replaces the Vite dev-server proxy used during local development.
+      # Where the frontend server reaches movie-service: hooks.server.ts proxies browser requests
+      # here, and SSR queries it directly. Browsers keep using the relative /graphql.
       MOVIE_SERVICE_ORIGIN: ${MOVIE_SERVICE_ORIGIN:-http://movie-service:8081}
-      # adapter-node: ORIGIN is required for POST requests (CSRF check), HOST/PORT
-      # bind the server, and BODY_SIZE_LIMIT must be raised above its 512 KB
-      # default or artwork uploads fail with 413 before they reach the backend.
+      # ORIGIN is required by adapter-node for POST (CSRF); BODY_SIZE_LIMIT must clear its 512 KB
+      # default or uploads fail with 413 before reaching the backend.
       ORIGIN: http://localhost:${FRONTEND_PORT:-3000}
       HOST: 0.0.0.0
       PORT: "3000"

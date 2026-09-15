@@ -20,7 +20,6 @@ import com.cinebase.person.v1.UpdateCreatorRequest
 import com.cinebase.person.v1.UpdatePersonRequest
 import org.springframework.stereotype.Service
 
-/** gRPC client used by movie-service to reach person-service for all people/cast/creator data. */
 @Service
 class PersonClient(private val stub: PersonServiceGrpc.PersonServiceBlockingStub) {
 

@@ -69,7 +69,7 @@ class MovieServiceGraphQlIntegrationTest {
     /** Unique per test, so rows left behind by other tests can never satisfy an assertion. */
     private val serial = AtomicInteger()
 
-    /** An id no test creates, so movie-existence checks always fail against it. */
+    /** Not created by any test, so existence checks always fail against it. */
     private val unknownMovieId = 999_999L
 
     // --- helpers ---
@@ -496,7 +496,6 @@ class MovieServiceGraphQlIntegrationTest {
             .execute()
             .returnResponse()
 
-        // movie-service owns movies, so it rejects the role itself instead of delegating the check.
         assertThat(only(response).errorType).isEqualTo(ErrorType.NOT_FOUND)
         Mockito.verifyNoInteractions(personClient)
     }

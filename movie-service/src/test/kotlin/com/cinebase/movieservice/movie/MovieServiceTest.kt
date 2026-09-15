@@ -24,12 +24,8 @@ import java.time.Instant
 import java.util.Optional
 
 /**
- * Domain rules of [MovieService] in isolation.
- *
- * Only behaviour that lives *in the service* is asserted here: text trimming, the existence
- * checks, the pagination clamp, the blank-vs-present search branch and the artwork cleanup it
- * hands to storage. Plain repository delegation and the end-to-end paths are covered by
- * `MovieServiceGraphQlIntegrationTest`.
+ * Domain rules of [MovieService] in isolation; repository delegation and the end-to-end paths are
+ * covered by `MovieServiceGraphQlIntegrationTest`.
  */
 class MovieServiceTest {
 
@@ -235,13 +231,10 @@ class MovieServiceTest {
 
         @JvmStatic
         fun paginationClamping(): List<Arguments> = listOf(
-            // A negative page starts from the first page.
             Arguments.of(-4, 12, 0, 12),
-            // A zero size would make Spring Data throw, so it becomes the minimum of one.
+            // A zero size makes Spring Data throw, so it becomes the minimum of one.
             Arguments.of(3, 0, 3, 1),
-            // An oversized page is capped at the maximum.
             Arguments.of(3, 5_000, 3, 100),
-            // The boundary value passes through untouched.
             Arguments.of(0, 100, 0, 100),
         )
 

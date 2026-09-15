@@ -9,13 +9,11 @@ import org.springframework.graphql.data.method.annotation.QueryMapping
 import org.springframework.stereotype.Controller
 
 /**
- * People, cast and creator GraphQL operations.
+ * People, cast and creator GraphQL operations, all delegated to person-service over gRPC —
+ * movie-service never touches the person database.
  *
- * Every method here delegates to person-service over gRPC — movie-service never touches the
- * person database directly. gRPC failures surface as GraphQL errors via [GraphQlExceptionAdvice].
- *
- * Movie existence is checked here, before the role RPCs, because movie-service owns movies and is
- * the only service that can answer that question; person-service keeps accepting any movie id.
+ * Movie existence is checked here because only this service owns movies; person-service accepts
+ * any movie id it is handed.
  */
 @Controller
 class PeopleController(
@@ -87,9 +85,5 @@ class PeopleController(
     @MutationMapping
     fun removeCreator(@Argument id: Long): Boolean = people.removeCreator(id)
 
-    /**
-     * Rejects a role whose movie does not exist. Only this service owns movies, so only this
-     * service can answer the question — person-service accepts any movie id it is handed.
-     */
     private fun requireMovie(movieId: Long) = movies.get(movieId)
 }

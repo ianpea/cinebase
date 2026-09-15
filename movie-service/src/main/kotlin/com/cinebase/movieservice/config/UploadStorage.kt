@@ -13,9 +13,7 @@ import java.nio.file.Paths
 import java.util.UUID
 
 /**
- * Resolves the upload directory, ensures it exists on startup, and stores/removes artwork files.
- *
- * Only the resulting public URL is persisted in the database; the bytes live on local disk.
+ * Only the public URL is persisted in the database; the bytes live on local disk.
  */
 @Component
 class UploadStorage(properties: StorageProperties) {
@@ -31,7 +29,6 @@ class UploadStorage(properties: StorageProperties) {
         Files.createDirectories(artworksDir)
     }
 
-    /** Writes [file] under `artworks/` and returns the public URL path used by the frontend. */
     fun storeArtwork(file: MultipartFile, extension: String): String {
         val fileName = "${UUID.randomUUID()}$extension"
         val target = artworksDir.resolve(fileName)
@@ -54,6 +51,10 @@ class UploadStorage(properties: StorageProperties) {
         return Files.deleteIfExists(target)
     }
 
+    /**
+     * Defers removal to after the commit — a rollback must not delete files the database still
+     * references, so an orphaned file is the acceptable failure.
+     */
     fun deleteByUrlAfterCommit(url: String) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             deleteQuietly(url)
