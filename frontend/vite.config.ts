@@ -15,14 +15,11 @@ export default defineConfig(({mode}) => ({
 			// adapter-node produces a standalone Node server in build/ that Docker runs.
 			adapter: adapter({out: 'build'}),
 
-			// `/graphql` and `/uploads` are not SvelteKit routes — `src/hooks.server.ts` passes
-			// them straight through to movie-service. SvelteKit's CSRF check guards its own form
-			// actions using ambient cookies, and this app has none (no auth by design), so the
-			// check protects nothing here. Left on, it rejects the multipart artwork upload
-			// whenever the browser's Origin differs from the configured ORIGIN — e.g. reaching the
-			// app at 127.0.0.1:3000 instead of localhost:3000 — while JSON queries keep working,
-			// which is a confusing failure to debug. `'*'` is the documented way to switch the
-			// origin check off (`checkOrigin` is deprecated in its favour).
+			// There are no cookies, sessions or form actions here, so the CSRF check protects
+			// nothing; the only form-encoded request it sees is the multipart artwork upload,
+			// which it would 403 whenever the browser's Origin differs from ORIGIN (127.0.0.1 vs
+			// localhost, a non-default FRONTEND_PORT, any non-loopback host). `'*'` is the
+			// documented way to switch the check off (`checkOrigin` is deprecated in its favour).
 			csrf: {trustedOrigins: ['*']}
 		})
 	],
