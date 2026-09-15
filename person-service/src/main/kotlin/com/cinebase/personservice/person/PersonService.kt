@@ -32,13 +32,18 @@ class PersonService(
         if (ids.isEmpty()) emptyMap() else people.findAllById(ids).associateBy { it.id }
 
     @Transactional
-    fun create(name: String, biography: String?, birthDate: LocalDate?): Person =
-        people.save(Person(name = name.trim(), biography = biography?.trim(), birthDate = birthDate))
+    fun create(name: String, biography: String?, birthDate: LocalDate?): Person {
+        val trimmed = name.trim()
+        requireUnique(trimmed, birthDate, excludingId = null)
+        return people.save(Person(name = trimmed, biography = biography?.trim(), birthDate = birthDate))
+    }
 
     @Transactional
     fun update(id: Long, name: String, biography: String?, birthDate: LocalDate?): Person {
         val person = get(id)
-        person.name = name.trim()
+        val trimmed = name.trim()
+        requireUnique(trimmed, birthDate, excludingId = id)
+        person.name = trimmed
         person.biography = biography?.trim()
         person.birthDate = birthDate
         person.updatedAt = Instant.now()
@@ -51,6 +56,20 @@ class PersonService(
         cast.deleteByPersonId(id)
         creators.deleteByPersonId(id)
         people.delete(person)
+    }
+
+    /** The trimmed, case-insensitive name plus the birth date identifies a person. */
+    private fun requireUnique(name: String, birthDate: LocalDate?, excludingId: Long?) {
+        // A null birth date needs its own query: `birth_date = null` never matches in SQL.
+        val matches = if (birthDate == null) {
+            people.findByNameIgnoreCaseAndBirthDateIsNull(name)
+        } else {
+            people.findByNameIgnoreCaseAndBirthDate(name, birthDate)
+        }
+        if (matches.any { it.id != excludingId }) {
+            val birth = birthDate?.let { "born $it" } ?: "with no birth date"
+            throw IllegalArgumentException("A person named '$name' $birth already exists")
+        }
     }
 
     fun search(query: String, limit: Int = 20): List<Person> =

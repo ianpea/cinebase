@@ -38,8 +38,11 @@ class PersonServiceTest {
     private val service = PersonService(people, cast, creators)
 
     @BeforeEach
-    fun stubSaving() {
+    fun stubRepositories() {
         every { people.save(any()) } returnsArgument 0
+        // Nothing is a duplicate unless a test says so.
+        every { people.findByNameIgnoreCaseAndBirthDate(any(), any()) } returns emptyList()
+        every { people.findByNameIgnoreCaseAndBirthDateIsNull(any()) } returns emptyList()
     }
 
     private fun person(id: Long = 1, name: String = "Christopher Nolan") = Person(id = id, name = name)
@@ -58,6 +61,30 @@ class PersonServiceTest {
         assertThat(created.biography).isEqualTo("British director")
         assertThat(created.birthDate).isEqualTo(LocalDate.of(1970, 7, 30))
         verify { people.save(any()) }
+    }
+
+    @Test
+    fun `create rejects a person whose name and birth date already exist, ignoring case`() {
+        every {
+            people.findByNameIgnoreCaseAndBirthDate("christopher nolan", LocalDate.of(1970, 7, 30))
+        } returns listOf(person(7, "Christopher Nolan"))
+
+        val failure = assertThrows<IllegalArgumentException> {
+            service.create("  christopher nolan  ", null, LocalDate.of(1970, 7, 30))
+        }
+
+        assertThat(failure).hasMessage("A person named 'christopher nolan' born 1970-07-30 already exists")
+        verify(exactly = 0) { people.save(any()) }
+    }
+
+    @Test
+    fun `create rejects a duplicate name when neither person has a birth date`() {
+        every { people.findByNameIgnoreCaseAndBirthDateIsNull("Anonymous") } returns listOf(person(3, "anonymous"))
+
+        val failure = assertThrows<IllegalArgumentException> { service.create("Anonymous", null, null) }
+
+        assertThat(failure).hasMessage("A person named 'Anonymous' with no birth date already exists")
+        verify(exactly = 0) { people.save(any()) }
     }
 
     // --- get / find ---
@@ -115,6 +142,33 @@ class PersonServiceTest {
 
         assertThat(updated.biography).isNull()
         assertThat(updated.birthDate).isNull()
+    }
+
+    @Test
+    fun `update rejects moving a person onto another person's name and birth date`() {
+        every { people.findById(1L) } returns Optional.of(person(1, "Chris Nolan"))
+        every { people.findByNameIgnoreCaseAndBirthDateIsNull("Christopher Nolan") } returns
+            listOf(person(2, "Christopher Nolan"))
+
+        val failure = assertThrows<IllegalArgumentException> {
+            service.update(1L, "Christopher Nolan", null, null)
+        }
+
+        assertThat(failure).hasMessage("A person named 'Christopher Nolan' with no birth date already exists")
+        verify(exactly = 0) { people.save(any()) }
+    }
+
+    @Test
+    fun `update ignores the person itself when checking for duplicates`() {
+        val existing = person(1, "Christopher Nolan").apply { birthDate = LocalDate.of(1970, 7, 30) }
+        every { people.findById(1L) } returns Optional.of(existing)
+        every {
+            people.findByNameIgnoreCaseAndBirthDate("Christopher Nolan", LocalDate.of(1970, 7, 30))
+        } returns listOf(existing)
+
+        val updated = service.update(1L, "Christopher Nolan", "bio", LocalDate.of(1970, 7, 30))
+
+        assertThat(updated.biography).isEqualTo("bio")
     }
 
     @Test

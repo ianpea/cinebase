@@ -119,13 +119,56 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
     }
 
     @Test
+    fun `createPerson rejects a person whose lowercased name and birth date already exist`() {
+        people.create("Ava DuVernay", null, LocalDate.of(1972, 8, 24))
+
+        val failure = assertThrows<StatusRuntimeException> {
+            stub.createPerson(
+                CreatePersonRequest.newBuilder()
+                    .setName("  AVA DUVERNAY  ")
+                    .setBirthDate("1972-08-24")
+                    .build(),
+            )
+        }
+
+        assertThat(failure.status.code).isEqualTo(Status.Code.INVALID_ARGUMENT)
+        assertThat(failure.status.description)
+            .isEqualTo("A person named 'AVA DUVERNAY' born 1972-08-24 already exists")
+    }
+
+    @Test
+    fun `createPerson treats two people without a birth date as the same person`() {
+        people.create("Second Unit", null, null)
+
+        val failure = assertThrows<StatusRuntimeException> {
+            stub.createPerson(CreatePersonRequest.newBuilder().setName("SECOND UNIT").build())
+        }
+
+        assertThat(failure.status.code).isEqualTo(Status.Code.INVALID_ARGUMENT)
+        assertThat(failure.status.description)
+            .isEqualTo("A person named 'SECOND UNIT' with no birth date already exists")
+    }
+
+    @Test
+    fun `createPerson allows the same name with a different birth date`() {
+        people.create("Bong Joon-ho", null, LocalDate.of(1969, 9, 14))
+
+        val created = stub.createPerson(
+            CreatePersonRequest.newBuilder().setName("Bong Joon-ho").setBirthDate("1969-09-15").build(),
+        )
+
+        assertThat(created.id).isPositive()
+        assertThat(created.birthDate).isEqualTo("1969-09-15")
+    }
+
+    @Test
     fun `getPerson returns a stored person`() {
-        val created = people.create("Christopher Nolan", "British director", LocalDate.of(1970, 7, 30))
+        val created = people.create("Greta Gerwig", "British director", LocalDate.of(1983, 8, 4))
 
         val fetched = stub.getPerson(GetPersonRequest.newBuilder().setId(created.id).build())
 
-        assertThat(fetched.name).isEqualTo("Christopher Nolan")
-        assertThat(fetched.birthDate).isEqualTo("1970-07-30")
+        assertThat(fetched.name).isEqualTo("Greta Gerwig")
+        assertThat(fetched.birthDate).isEqualTo("1983-08-04")
     }
 
     @Test
@@ -200,14 +243,49 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
 
     @Test
     fun `updatePerson clears optional fields when they are omitted`() {
-        val created = people.create("Christopher Nolan", "Director", LocalDate.of(1970, 7, 30))
+        val created = people.create("Patty Jenkins", "Director", LocalDate.of(1971, 7, 24))
 
         val updated = stub.updatePerson(
-            UpdatePersonRequest.newBuilder().setId(created.id).setName("Christopher Nolan").build(),
+            UpdatePersonRequest.newBuilder().setId(created.id).setName("Patty Jenkins").build(),
         )
 
         assertThat(updated.biography).isEmpty()
         assertThat(updated.birthDate).isEmpty()
+    }
+
+    @Test
+    fun `updatePerson rejects renaming onto an existing person`() {
+        people.create("Kathryn Bigelow", "Director", LocalDate.of(1951, 11, 27))
+        val other = people.create("Sofia Coppola", null, null)
+
+        val failure = assertThrows<StatusRuntimeException> {
+            stub.updatePerson(
+                UpdatePersonRequest.newBuilder()
+                    .setId(other.id)
+                    .setName("kathryn bigelow")
+                    .setBirthDate("1951-11-27")
+                    .build(),
+            )
+        }
+
+        assertThat(failure.status.code).isEqualTo(Status.Code.INVALID_ARGUMENT)
+        assertThat(failure.status.description).contains("already exists")
+    }
+
+    @Test
+    fun `updatePerson keeps its own name and birth date`() {
+        val created = people.create("Wes Anderson", "Director", LocalDate.of(1969, 5, 1))
+
+        val updated = stub.updatePerson(
+            UpdatePersonRequest.newBuilder()
+                .setId(created.id)
+                .setName("Wes Anderson")
+                .setBirthDate("1969-05-01")
+                .setBiography("Writer")
+                .build(),
+        )
+
+        assertThat(updated.biography).isEqualTo("Writer")
     }
 
     @Test
@@ -279,7 +357,7 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
     @Test
     fun `updateCastMember rewrites the character name`() {
         val movieId = nextMovieId()
-        val actor = people.create("Matthew McConaughey", null, null)
+        val actor = people.create("Emma Stone", null, null)
         val added = stub.addCastMember(
             AddCastMemberRequest.newBuilder().setMovieId(movieId).setPersonId(actor.id)
                 .setCharacterName("Coop").build(),
@@ -290,7 +368,7 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
         )
 
         assertThat(updated.characterName).isEqualTo("Joseph Cooper")
-        assertThat(updated.person.name).isEqualTo("Matthew McConaughey")
+        assertThat(updated.person.name).isEqualTo("Emma Stone")
     }
 
     @Test
@@ -325,7 +403,7 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
     @Test
     fun `addCreator stores the role and returns it with its person`() {
         val movieId = nextMovieId()
-        val director = people.create("Christopher Nolan", null, null)
+        val director = people.create("Jordan Peele", null, null)
 
         val added = stub.addCreator(
             AddCreatorRequest.newBuilder().setMovieId(movieId).setPersonId(director.id)
@@ -334,7 +412,7 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
 
         assertThat(added.movieId).isEqualTo(movieId)
         assertThat(added.job).isEqualTo("Director")
-        assertThat(added.person.name).isEqualTo("Christopher Nolan")
+        assertThat(added.person.name).isEqualTo("Jordan Peele")
     }
 
     @Test
@@ -373,25 +451,25 @@ class PersonServiceGrpcIntegrationTest @Autowired constructor(
     @Test
     fun `getPeopleForMovie returns cast and creators together`() {
         val movieId = nextMovieId()
-        val nolan = people.create("Christopher Nolan", "Director", null)
-        val mcconaughey = people.create("Matthew McConaughey", "Actor", null)
+        val director = people.create("Ridley Scott", "Director", null)
+        val actor = people.create("Harrison Ford", "Actor", null)
         stub.addCastMember(
-            AddCastMemberRequest.newBuilder().setMovieId(movieId).setPersonId(mcconaughey.id)
-                .setCharacterName("Cooper").build(),
+            AddCastMemberRequest.newBuilder().setMovieId(movieId).setPersonId(actor.id)
+                .setCharacterName("Deckard").build(),
         )
         stub.addCreator(
-            AddCreatorRequest.newBuilder().setMovieId(movieId).setPersonId(nolan.id).setJob("Director").build(),
+            AddCreatorRequest.newBuilder().setMovieId(movieId).setPersonId(director.id).setJob("Director").build(),
         )
 
         val response = stub.getPeopleForMovie(GetPeopleForMovieRequest.newBuilder().setMovieId(movieId).build())
 
         assertThat(response.castCount).isEqualTo(1)
-        assertThat(response.getCast(0).characterName).isEqualTo("Cooper")
-        assertThat(response.getCast(0).person.name).isEqualTo("Matthew McConaughey")
+        assertThat(response.getCast(0).characterName).isEqualTo("Deckard")
+        assertThat(response.getCast(0).person.name).isEqualTo("Harrison Ford")
 
         assertThat(response.creatorsCount).isEqualTo(1)
         assertThat(response.getCreators(0).job).isEqualTo("Director")
-        assertThat(response.getCreators(0).person.name).isEqualTo("Christopher Nolan")
+        assertThat(response.getCreators(0).person.name).isEqualTo("Ridley Scott")
     }
 
     @Test
