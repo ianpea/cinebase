@@ -2,16 +2,12 @@ import {env} from '$env/dynamic/private';
 import {json, type Handle} from '@sveltejs/kit';
 
 /**
- * The browser only ever talks to movie-service through relative paths: the urql client uses
- * `url: '/graphql'` and artwork images use `/uploads/...`.
+ * The browser only ever reaches movie-service through relative paths (`url: '/graphql'`, artwork
+ * images `/uploads/...`). `vite.config.ts` proxies both during development, but that proxy lives in
+ * the dev server and not in the adapter-node server Docker runs, so this hook reproduces it in
+ * production. Keeping every browser URL relative means movie-service needs no CORS configuration.
  *
- * In development `vite.config.ts` proxies both of those to http://localhost:8081, but that proxy
- * belongs to the dev server and does not exist in the production Node server that Docker runs.
- * This hook performs the same forwarding, which keeps every URL relative and means movie-service
- * needs no CORS configuration.
- *
- * Server-side rendering does not come through here — it queries movie-service directly through
- * `$lib/server/graphql.ts`, so only browser requests are proxied.
+ * SSR loads bypass this — `$lib/server/graphql.ts` queries movie-service directly.
  */
 const PROXIED_PREFIXES = ['/graphql', '/uploads'];
 
@@ -41,14 +37,13 @@ export const handle: Handle = async ({event, resolve}) => {
         upstream = await fetch(new URL(`${pathname}${search}`, env.MOVIE_SERVICE_ORIGIN ?? DEFAULT_ORIGIN), {
             method,
             headers,
-            // Buffered rather than streamed: a streaming body needs `duplex: 'half'` in undici, and
-            // artwork uploads are capped at 10 MB on the server anyway.
+            // Buffered because streaming a body needs `duplex: 'half'` in undici, and uploads are
+            // capped at 10 MB on the server anyway.
             body: hasBody ? await event.request.arrayBuffer() : undefined
         });
     } catch {
-        // movie-service takes a few seconds to boot, and this server starts instantly, so a request
-        // can land here before the backend is listening. Answer with a GraphQL-shaped body so the
-        // client's normal error handling shows something actionable instead of "Internal Error".
+        // movie-service boots slower than this server, so a request can arrive before it is
+        // listening. Answer in GraphQL shape so the client surfaces this instead of "Internal Error".
         return json(
             {errors: [{message: 'The movie service is unavailable. Please try again in a moment.'}]},
             {status: 503, headers: {'retry-after': '2'}}
