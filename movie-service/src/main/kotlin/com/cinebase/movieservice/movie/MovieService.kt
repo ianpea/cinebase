@@ -70,7 +70,4 @@ class MovieService(
             movies.save(movie)
         }
     }
-
-    fun search(query: String, limit: Int = 20): List<Movie> =
-        movies.findByTitleContainingIgnoreCase(query.trim(), PageRequest.of(0, limit)).content
 }

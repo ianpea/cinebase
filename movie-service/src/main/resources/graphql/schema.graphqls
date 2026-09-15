@@ -13,9 +13,6 @@ type Query {
 
   # People (resolved via person-service gRPC)
   people(search: String, page: Int, size: Int): PersonPage!
-
-  # Combined search across movies and people.
-  search(query: String!): SearchResult!
 }
 
 type Mutation {
@@ -149,9 +146,4 @@ type PersonPage {
   page: Int!
   size: Int!
   totalPages: Int!
-}
-
-type SearchResult {
-  movies: [Movie!]!
-  people: [Person!]!
 }

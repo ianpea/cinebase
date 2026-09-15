@@ -7,7 +7,7 @@ A small movie manager: a **SvelteKit** frontend over a single **GraphQL** API, b
 The frontend never talks to `person-service`. Cast and creators are fetched by `movie-service` over
 gRPC, so the two services keep separate databases and never read each other's tables.
 
-The brief is covered end to end: **211 tests pass** (80 `movie-service`, 74 `person-service`,
+The brief is covered end to end: **208 tests pass** (77 `movie-service`, 74 `person-service`,
 57 `frontend`) and `docker compose up --build` brings the whole stack up from a clean state.
 
 ## What it does
@@ -177,8 +177,7 @@ mutation {
 }
 ```
 
-- `movies`, `movie`, `people` cover listing, details and search; `search` is a combined search across
-  both.
+- `movies`, `movie` and `people` cover listing, details and search.
 - All movie, person, cast/creator and artwork mutations from the brief are present.
 - Artwork uploads use the [GraphQL multipart request spec](https://github.com/jaydenseric/graphql-multipart-request-spec)
   against the same endpoint, so uploaded files arrive as a real `Upload` scalar.
@@ -237,7 +236,7 @@ variables are needed locally. If your default JDK is newer than 21, set `JAVA_HO
 
 ```bash
 cd person-service && ./gradlew test    # 74 tests
-cd movie-service  && ./gradlew test    # 80 tests
+cd movie-service  && ./gradlew test    # 77 tests
 cd frontend       && npm test          # 57 tests
 cd frontend       && npm run check     # svelte-check
 ```
@@ -303,8 +302,6 @@ Kept short and honest — these are deliberate scope decisions, not oversights.
   here.
 - **Schema is managed by Hibernate `ddl-auto: update`.** A real deployment would use Flyway or
   Liquibase migrations.
-- **The combined `search(query:)` field is implemented and tested at the API level but unused by the
-  UI**, which uses the dedicated movie and people search boxes.
 - **Cast and creator lists are not paginated** (a film has few roles), and adding the same person
   twice as cast is allowed.
 - **No gRPC retries or circuit breaker.** Every call to `person-service` carries a 5 s deadline
@@ -333,7 +330,7 @@ back after finding cases that only asserted their own mocks. Documentation and t
 earlier in the project were re-checked at the end and corrected where they had gone stale.
 
 **How it was tested.** Each phase was verified by running it: `./gradlew test` and `npm test` for the
-205 test cases, `npm run check` for the frontend types, and a clean
+208 test cases, `npm run check` for the frontend types, and a clean
 `docker compose down -v --rmi local && docker compose up --build` followed by manual end-to-end
 checks — movie CRUD, search and pagination, cast and creators resolved over gRPC, a 2 MB artwork
 upload served back over HTTP, cover promotion after removing artwork, a readable `503` when the

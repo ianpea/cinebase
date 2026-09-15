@@ -57,12 +57,6 @@ class MovieController(
         )
     }
 
-    @QueryMapping
-    fun search(@Argument query: String): SearchResultDto = SearchResultDto(
-        movies = movieService.search(query, SEARCH_LIMIT),
-        people = personClient.searchPeople(query, 0, SEARCH_LIMIT).peopleList.map { it.toDto() },
-    )
-
     // --- Movie mutations ---
 
     @MutationMapping

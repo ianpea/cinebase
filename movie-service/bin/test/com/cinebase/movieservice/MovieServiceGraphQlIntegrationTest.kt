@@ -532,20 +532,6 @@ class MovieServiceGraphQlIntegrationTest {
         assertThat(response.path("movie.creators[*].id").entityList<String>().get()).isEmpty()
     }
 
-    @Test
-    fun `search combines local movies with people from person-service`() {
-        val movie = storeMovie(uniqueTitle("Inter"))
-        Mockito.`when`(personClient.searchPeople("inter", 0, 20)).thenReturn(
-            SearchPeopleResponse.newBuilder().addPeople(person(7, "Interstellar Actor")).setTotal(1).build(),
-        )
-
-        val response = tester.document(SEARCH).variable("query", "inter").execute()
-
-        assertThat(response.path("search.movies[*].id").entityList<String>().get()).contains(movie.id.toString())
-        assertThat(response.path("search.people[*].name").entityList<String>().get())
-            .containsExactly("Interstellar Actor")
-    }
-
     // --- gRPC failure mapping ---
 
     @Test
@@ -657,15 +643,6 @@ class MovieServiceGraphQlIntegrationTest {
         private val ADD_CREATOR = """
             mutation AddCreator(${'$'}input: CreatorInput!) {
               addCreator(input: ${'$'}input) { id movieId job person { id name } }
-            }
-        """.trimIndent()
-
-        private val SEARCH = """
-            query Search(${'$'}query: String!) {
-              search(query: ${'$'}query) {
-                movies { id title }
-                people { id name }
-              }
             }
         """.trimIndent()
     }

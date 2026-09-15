@@ -18,7 +18,6 @@ import java.time.LocalDate
 
 const val DEFAULT_PAGE_SIZE = 20
 const val MAX_PAGE_SIZE = 100
-const val SEARCH_LIMIT = 20
 
 class MovieInput(
     @field:NotBlank(message = "title must not be blank")
@@ -104,9 +103,4 @@ data class PersonPageDto(
     val page: Int,
     val size: Int,
     val totalPages: Int,
-)
-
-data class SearchResultDto(
-    val movies: List<Movie>,
-    val people: List<PersonDto>,
 )

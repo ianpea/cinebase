@@ -206,30 +206,6 @@ class MovieServiceTest {
         assertThat(pageable.captured.sort.getOrderFor("createdAt")?.direction).isEqualTo(Sort.Direction.DESC)
     }
 
-    // --- search ---
-
-    @Test
-    fun `search trims the term and applies the limit to the first page`() {
-        val pageable = slot<Pageable>()
-        every { movies.findByTitleContainingIgnoreCase("inter", capture(pageable)) } returns pageOf(movie())
-
-        val found = service.search("  inter  ", limit = 5)
-
-        assertThat(found).hasSize(1)
-        assertThat(pageable.captured.pageNumber).isEqualTo(0)
-        assertThat(pageable.captured.pageSize).isEqualTo(5)
-    }
-
-    @Test
-    fun `search defaults to twenty results`() {
-        val pageable = slot<Pageable>()
-        every { movies.findByTitleContainingIgnoreCase("inter", capture(pageable)) } returns pageOf()
-
-        service.search("inter")
-
-        assertThat(pageable.captured.pageSize).isEqualTo(20)
-    }
-
     // --- cover artwork ---
 
     @Test

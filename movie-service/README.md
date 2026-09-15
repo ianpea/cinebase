@@ -35,7 +35,7 @@ Everything has a working default, so local development needs no environment vari
 
 ```bash
 ./gradlew bootRun     # GraphQL on http://localhost:8081/graphql
-./gradlew test        # 80 tests
+./gradlew test        # 77 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -104,17 +104,17 @@ channel then treats the name as a DNS host.
 ## Tests
 
 ```bash
-./gradlew test        # 80 tests, 6 classes
+./gradlew test        # 77 tests, 6 classes
 ```
 
 | File | Tests | Focus |
 | --- | --- | --- |
-| `movie/MovieServiceTest` | 21 | create/trim, update, delete, search, pagination clamps, sorting, cover sync |
+| `movie/MovieServiceTest` | 19 | create/trim, update, delete, search, pagination clamps, sorting, cover sync |
 | `artwork/ArtworkServiceTest` | 15 | upload gate (empty, oversize, wrong type), extension mapping, cover promotion, removal |
 | `config/UploadStorageTest` | 9 | unique names, byte round-trip, deletes, after-commit timing, path-traversal refusals |
 | `grpc/PersonClientTest` | 3 | in-process gRPC: response mapping, request mapping, error propagation |
 | `grpc/PersonClientDeadlineTest` | 1 | a silent `person-service` is ended by the configured deadline, not by hanging |
-| `MovieServiceGraphQlIntegrationTest` | 31 | GraphQL end to end via `GraphQlTester` on H2, with a mocked gRPC client — CRUD, validation, search, pagination, sorting, artwork, role delegation and the error contract |
+| `MovieServiceGraphQlIntegrationTest` | 30 | GraphQL end to end via `GraphQlTester` on H2, with a mocked gRPC client — CRUD, validation, search, pagination, sorting, artwork, role delegation and the error contract |
 
 Integration tests run against H2 in PostgreSQL mode with files written to `build/test-uploads`, so
 they need no database and leave nothing behind.
