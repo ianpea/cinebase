@@ -35,8 +35,7 @@
 
 	const movieId = $derived(page.params.id ?? '');
 
-	// `+page.server.ts` already queried this movie, so render it from the first byte; the effect
-	// below applies a later load for another id, and `load()` refreshes after a mutation.
+	// Initial result is from SSR loaded data. Subsequent results are re-fetched when need.
 	// svelte-ignore state_referenced_locally
 	let movie = $state<Movie | null>(data.movie);
 	let loading = $state(false);
@@ -348,7 +347,7 @@
 
 	<MovieDialog
 		bind:open={movieDialogOpen}
-		movie={movie}
+		{movie}
 		onsaved={(updated) => {
 			toast.success(`Updated “${updated.title}”.`);
 			void load();

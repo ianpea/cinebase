@@ -34,6 +34,7 @@
 		{ value: 'ASC', label: 'Ascending' }
 	];
 
+	// Data from +page.server.ts
 	let { data }: PageProps = $props();
 
 	let search = $state('');
@@ -41,9 +42,8 @@
 	let sortDirection = $state<SortDirection>(DEFAULT_MOVIE_SORT_DIRECTION);
 	let page = $state(0);
 
-	// `+page.server.ts` already queried exactly this first page, so start from its result. Only the
-	// starting value comes from the load — from here the page owns its state, and `load()` replaces
-	// it on every filter change and after every mutation. Hence the deliberate capture-once ignore.
+	
+	// Initial result is from SSR loaded data. Subsequent results are re-fetched when need.
 	// svelte-ignore state_referenced_locally
 	let result = $state<MoviePage | null>(data.movies);
 	let loading = $state(false);

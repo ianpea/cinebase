@@ -9,15 +9,7 @@ import {errorMessage} from '$lib/graphql/result';
 import type {MoviesQueryVariables} from '$lib/graphql/types';
 import {serverQuery} from '$lib/server/graphql';
 
-/**
- * Renders the first page of the movie grid during SSR, so the initial HTML already contains the
- * movie cards instead of a loading placeholder. Everything the user does afterwards (search, sort,
- * pagination, and every refetch after a mutation) still runs in the browser through
- * `$lib/graphql/api.ts`.
- *
- * A failure is returned as data rather than thrown: a backend that is briefly unavailable should
- * still render the page, with the retry button the movies page already provides.
- */
+/** Loads the initial movies for server-side rendering. */
 export const load: PageServerLoad = async ({fetch}) => {
     const variables: MoviesQueryVariables = {
         // An empty search box means "no filter", which the API expresses as null.

@@ -1,0 +1,10 @@
+# Package managers
+package-lock.json
+
+# Generated / build output
+.svelte-kit/
+build/
+node_modules/
+
+# Copied verbatim to the bundle
+static/
