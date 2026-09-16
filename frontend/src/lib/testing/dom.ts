@@ -1,4 +1,4 @@
-import {fireEvent} from '@testing-library/svelte';
+import { fireEvent } from '@testing-library/svelte';
 
 /** Small DOM helpers shared by the component tests. Only test files import this module. */
 
@@ -10,9 +10,9 @@ import {fireEvent} from '@testing-library/svelte';
  * implement form submission navigation.
  */
 export function submitForm() {
-    const form = document.querySelector('form');
-    if(!form) throw new Error('form not rendered');
-    return fireEvent.submit(form);
+	const form = document.querySelector('form');
+	if (!form) throw new Error('form not rendered');
+	return fireEvent.submit(form);
 }
 
 /**
@@ -22,10 +22,32 @@ export function submitForm() {
  * bound value back onto `input.files`.
  */
 export async function chooseFile(input: HTMLInputElement, file: File) {
-    Object.defineProperty(input, 'files', {value: [file], configurable: true, writable: true});
-    await fireEvent.change(input);
+	Object.defineProperty(input, 'files', { value: [file], configurable: true, writable: true });
+	await fireEvent.change(input);
 }
 
 export function imageFile(name: string, type: string, size = 1024): File {
-    return new File([new Uint8Array(size)], name, {type});
+	return new File([new Uint8Array(size)], name, { type });
+}
+
+type DateSegment = 'day' | 'month' | 'year';
+
+function segment(part: DateSegment) {
+	const el = document.querySelector(`[data-segment="${part}"]`);
+	if (!el) throw new Error(`${part} segment not rendered`);
+	return el as HTMLElement;
+}
+
+/** The text a `DateField` currently shows for one segment, e.g. `03`. */
+export function dateSegmentText(part: DateSegment) {
+	return segment(part).textContent?.trim() ?? '';
+}
+
+/** Types a date into a bits-ui `DateField`, which only accepts one key at a time. */
+export async function typeDate(digits: Record<DateSegment, string>) {
+	for (const part of ['day', 'month', 'year'] as const) {
+		for (const key of digits[part]) {
+			await fireEvent.keyDown(segment(part), { key });
+		}
+	}
 }

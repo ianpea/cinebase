@@ -79,6 +79,35 @@ second database is created on first start.
 Postgres data lives on the `postgres-data` volume and artwork on the `./data/uploads` bind mount, so
 both survive a rebuild.
 
+### Building images
+
+Run every build from the repository root, which is where `docker-compose.yml` lives.
+
+```bash
+docker compose build                     # build all three images
+docker compose build movie-service       # rebuild one service
+docker compose build person-service
+docker compose build frontend
+docker compose up -d                     # start what you just built
+```
+
+`docker compose build` on its own never starts a container, and `docker compose up` without
+`--build` reuses the image that already exists instead of rebuilding it. Add `--no-cache` when a
+dependency changed but the layer cache is still serving the old image:
+
+```bash
+docker compose build --no-cache frontend
+```
+
+| Service | Image |
+| --- | --- |
+| `frontend` | `cinebase-frontend` |
+| `movie-service` | `cinebase-movie-service` |
+| `person-service` | `cinebase-person-service` |
+
+Both Kotlin services compile the shared [`proto/`](proto) directory, so Compose builds them with the
+repository root as their context; the frontend builds from `./frontend`.
+
 | Service | Port | Notes |
 | --- | --- | --- |
 | frontend | 3000 | the only port you need |

@@ -23,6 +23,20 @@ default, so local development needs no environment variables.
 
 An HTTP port (8082) is bound because the web starter is on the classpath, but no HTTP API is exposed.
 
+### Docker
+
+Run from the repository root.
+
+```bash
+docker compose build person-service      # build the image
+docker compose up -d person-service      # start it, along with PostgreSQL
+```
+
+See [Building images](../README.md#building-images) to build every service at once.
+
+The image is `cinebase-person-service`. Inside Compose, `movie-service` reaches this service at the
+network alias `person-service:9090`, never `localhost`.
+
 ## Data ownership
 
 | Table | Contents |

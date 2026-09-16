@@ -21,6 +21,20 @@ Requires JDK 21 and PostgreSQL 16+; the Gradle wrapper is included and every set
 ./gradlew bootJar     # build the runnable jar
 ```
 
+### Docker
+
+Run from the repository root.
+
+```bash
+docker compose build movie-service      # build the image
+docker compose up -d movie-service      # start it, along with the services it depends on
+```
+
+See [Building images](../README.md#building-images) to build every service at once.
+
+The image is `cinebase-movie-service`. It runs `java -jar app.jar` with `UPLOADS_DIR=/app/uploads`
+and exposes 8081; Compose bind-mounts `./data/uploads` over that path so artwork survives a rebuild.
+
 ## GraphQL
 
 - Endpoint: `POST http://localhost:8081/graphql` — POST only, Spring GraphQL does not serve GET.

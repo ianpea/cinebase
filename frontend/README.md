@@ -17,9 +17,24 @@ npm test           # 75 tests
 npm run check      # svelte-check
 ```
 
+### Docker
+
+Run from the repository root.
+
+```bash
+docker compose build frontend      # build the image
+docker compose up -d frontend      # start it, along with movie-service and its dependencies
+```
+
+See [Building images](../README.md#building-images) to build every service at once.
+
+The image is `cinebase-frontend` and it runs the `adapter-node` server.
+
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `MOVIE_SERVICE_ORIGIN` | `http://localhost:8081` | where SSR loads and the production proxy find `movie-service` (in Compose: `http://movie-service:8081`) |
+| `ORIGIN` | — | origin `adapter-node` trusts for POST requests; Compose sets the browser-facing URL |
+| `BODY_SIZE_LIMIT` | 512 KB | `adapter-node`'s default, which is below the 10 MB artwork limit; Compose raises it to `12M` |
 
 ## Pages
 
