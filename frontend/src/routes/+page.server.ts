@@ -9,7 +9,6 @@ import {errorMessage} from '$lib/graphql/result';
 import type {MoviesQueryVariables} from '$lib/graphql/types';
 import {serverQuery} from '$lib/server/graphql';
 
-/** Loads the initial movies for server-side rendering. */
 export const load: PageServerLoad = async ({fetch}) => {
     const variables: MoviesQueryVariables = {
         // An empty search box means "no filter", which the API expresses as null.

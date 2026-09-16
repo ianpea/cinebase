@@ -22,9 +22,7 @@
 	let search = $state('');
 	let page = $state(0);
 
-	// `+page.server.ts` already queried exactly this first page, so start from its result. Only the
-	// starting value comes from the load — from here the page owns its state, and `load()` replaces
-	// it on every search change and after every mutation. Hence the deliberate capture-once ignore.
+	// Initial result is from SSR loaded data. Subsequent results are re-fetched when need.
 	// svelte-ignore state_referenced_locally
 	let result = $state<PersonPage | null>(data.people);
 	let loading = $state(false);
@@ -168,8 +166,8 @@
 			{/each}
 		</ul>
 		<Pagination
-			page={page}
-			onPageChange={onPageChange}
+			{page}
+			{onPageChange}
 			totalPages={result.totalPages}
 			total={result.total}
 			itemLabel="person"
