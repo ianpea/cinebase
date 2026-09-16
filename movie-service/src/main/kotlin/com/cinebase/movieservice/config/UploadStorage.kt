@@ -43,7 +43,7 @@ class UploadStorage(properties: StorageProperties) {
      *
      * Unrecognised or escaping paths are ignored so a bad DB value can never delete arbitrary files.
      */
-    fun deleteByUrl(url: String): Boolean {
+    internal fun deleteByUrl(url: String): Boolean {
         val prefix = "/$UPLOADS_SEGMENT/"
         if (!url.startsWith(prefix)) return false
         val target = uploadsDir.resolve(url.removePrefix(prefix)).normalize()

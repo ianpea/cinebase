@@ -24,12 +24,6 @@ class ArtworkService(
         storage.deleteByUrlAfterCommit(artwork.url)
     }
 
-    @Transactional
-    fun register(movieId: Long, url: String, type: ArtworkType): Artwork {
-        movies.get(movieId) // ensure the movie exists
-        return artworks.save(Artwork(movieId = movieId, url = url, type = type))
-    }
-
     /** Validates, stores and registers an uploaded artwork file. */
     @Transactional
     fun store(movieId: Long, type: ArtworkType, file: MultipartFile): Artwork {

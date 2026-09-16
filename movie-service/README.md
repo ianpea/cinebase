@@ -1,6 +1,6 @@
 # movie-service
 
-The GraphQL API for Cinebase and the only backend the frontend talks to. It owns movies and artwork,
+The GraphQL API for Cinebase is the only backend the frontend talks to. It owns movies and artwork,
 serves the uploaded files, and reads people, cast and creators from `person-service` over gRPC.
 
 ## Configuration and run

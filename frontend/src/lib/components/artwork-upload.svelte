@@ -16,7 +16,6 @@
 	/**
 	 * Artwork file selection with client-side validation, an image preview and upload progress.
 	 * Replacing an artwork uploads the new file first, then removes the artwork it replaces
-	 * (upload-first keeps the movie covered if the upload fails).
 	 */
 	let {
 		movieId,
@@ -47,7 +46,6 @@
 
 	$effect(() => {
 		artworkType = replace?.type ?? 'POSTER';
-		// Untracked: clearSelection touches state the user edits after selection.
 		untrack(() => clearSelection());
 	});
 

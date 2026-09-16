@@ -16,10 +16,7 @@ export function movieServiceGraphqlUrl(origin = env.MOVIE_SERVICE_ORIGIN ?? DEFA
     return new URL('/graphql', origin).toString();
 }
 
-/**
- * Uses the load function's `fetch` and a per-call urql client so serialization, parsing and errors
- * match the browser client.
- */
+/** Executes a GraphQL query server-side using SvelteKit's fetch. */
 export async function serverQuery<Doc extends TypedDocumentNode<any, any>>(
     fetch: typeof globalThis.fetch,
     document: Doc,
