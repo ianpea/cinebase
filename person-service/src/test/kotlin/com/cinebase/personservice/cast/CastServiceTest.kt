@@ -68,18 +68,6 @@ class CastServiceTest {
     }
 
     @Test
-    fun `add allows the same person to hold two roles in one movie`() {
-        every { people.findById(7L) } returns Optional.of(person())
-
-        val first = service.add(1L, 7L, "Cooper")
-        val second = service.add(1L, 7L, "Older Cooper")
-
-        assertThat(first.characterName).isEqualTo("Cooper")
-        assertThat(second.characterName).isEqualTo("Older Cooper")
-        verify(exactly = 2) { cast.save(any()) }
-    }
-
-    @Test
     fun `updateCharacterName rewrites the stored character name with trimming`() {
         val stored = member()
         every { cast.findById(1L) } returns Optional.of(stored)

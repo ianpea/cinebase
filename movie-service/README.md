@@ -17,7 +17,7 @@ Requires JDK 21 and PostgreSQL 16+; the Gradle wrapper is included and every set
 
 ```bash
 ./gradlew bootRun     # GraphQL on http://localhost:8081/graphql
-./gradlew test        # 80 tests
+./gradlew test        # 79 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -83,12 +83,12 @@ locally before anything is stored or sent over gRPC.
 
 ## Tests
 
-80 tests in 6 classes (`./gradlew test`).
+79 tests in 6 classes (`./gradlew test`).
 
 | File | Tests | Focus |
 | --- | --- | --- |
 | `movie/MovieServiceTest` | 19 | create/trim, update, delete, search, pagination clamps, sorting, cover sync |
-| `artwork/ArtworkServiceTest` | 15 | upload gate (empty, oversize, wrong type), extension mapping, cover promotion, removal |
+| `artwork/ArtworkServiceTest` | 14 | upload gate (empty, oversize, wrong type), extension mapping, cover promotion, removal |
 | `config/UploadStorageTest` | 9 | unique names, byte round-trip, deletes, after-commit timing, path-traversal refusals |
 | `grpc/PersonClientTest`, `grpc/PersonClientDeadlineTest` | 4 | in-process gRPC: response and request mapping, error propagation, and the configured deadline |
 | `MovieServiceGraphQlIntegrationTest` | 33 | GraphQL end to end via `GraphQlTester` on H2 with a mocked gRPC client, including the movie-existence checks that guard artwork and role writes |

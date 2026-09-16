@@ -17,7 +17,7 @@ default, so local development needs no environment variables.
 
 ```bash
 ./gradlew bootRun     # gRPC on port 9090
-./gradlew test        # 84 tests
+./gradlew test        # 82 tests
 ./gradlew bootJar     # build the runnable jar
 ```
 
@@ -72,12 +72,12 @@ involved belongs to this database, so the cleanup never crosses a service bounda
 
 ## Tests
 
-84 tests in 5 classes (`./gradlew test`).
+82 tests in 5 classes (`./gradlew test`).
 
 | File | Tests | Focus |
 | --- | --- | --- |
-| `person/PersonServiceTest` | 24 | create/trim, duplicate name + birth date rejection, update, delete order, pagination clamps, search limits, case-insensitive name sorting |
-| `cast/CastServiceTest` | 7 | add, update character name, remove, missing person |
+| `person/PersonServiceTest` | 23 | create/trim, duplicate name + birth date rejection, update, delete order, pagination clamps, search limits, case-insensitive name sorting |
+| `cast/CastServiceTest` | 6 | add, update character name, remove, missing person |
 | `creator/CreatorServiceTest` | 6 | add, update job, remove, missing person |
 | `grpc/PersonGrpcServiceTest` | 17 | proto ↔ domain mapping, batched lookup, and the full gRPC status contract |
 | `PersonServiceGrpcIntegrationTest` | 30 | real gRPC server + H2: person CRUD, duplicate identity rejection, case-insensitive search, role add/update/remove, not-found wiring, role cleanup on person deletion, per-movie role isolation |

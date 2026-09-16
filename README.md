@@ -216,13 +216,13 @@ In Compose the channel target is the service name (`person-service:9090`), never
 
 ## Testing
 
-**239 tests, all passing.**
+**241 tests, all passing.**
 
 | Suite | Tests | Stack |
 | --- | --- | --- |
-| `movie-service` | 80 | JUnit, MockK, AssertJ, `GraphQlTester`, in-process gRPC, H2 |
-| `person-service` | 84 | JUnit, MockK, AssertJ, in-process gRPC, H2 |
-| `frontend` | 75 | Vitest, `@testing-library/svelte`, jsdom |
+| `movie-service` | 79 | JUnit, MockK, AssertJ, `GraphQlTester`, in-process gRPC, H2 |
+| `person-service` | 82 | JUnit, MockK, AssertJ, in-process gRPC, H2 |
+| `frontend` | 80 | Vitest, `@testing-library/svelte`, jsdom |
 
 ```bash
 cd person-service && ./gradlew test
@@ -256,5 +256,5 @@ GitHub Copilot in VS Code (agent mode) was used throughout development based on 
 
 AI assisted with the initial implementation across the Spring Boot services, GraphQL and gRPC integration, Svelte frontend, Docker configuration and automated tests. Generated code was reviewed, run and refined as the application was integrated, including simplifying frontend state handling and removing low-value tests.
 
-The final implementation was verified with **239 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
+The final implementation was verified with **241 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
 

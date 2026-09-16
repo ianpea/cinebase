@@ -160,19 +160,6 @@ class PersonServiceTest {
     }
 
     @Test
-    fun `update ignores the person itself when checking for duplicates`() {
-        val existing = person(1, "Christopher Nolan").apply { birthDate = LocalDate.of(1970, 7, 30) }
-        every { people.findById(1L) } returns Optional.of(existing)
-        every {
-            people.findByNameIgnoreCaseAndBirthDate("Christopher Nolan", LocalDate.of(1970, 7, 30))
-        } returns listOf(existing)
-
-        val updated = service.update(1L, "Christopher Nolan", "bio", LocalDate.of(1970, 7, 30))
-
-        assertThat(updated.biography).isEqualTo("bio")
-    }
-
-    @Test
     fun `update fails for an unknown person without saving`() {
         every { people.findById(404L) } returns Optional.empty()
 

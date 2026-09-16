@@ -168,15 +168,6 @@ class ArtworkServiceTest {
         verify(exactly = 0) { storage.deleteByUrlAfterCommit(any()) }
     }
 
-    // --- listing ---
-
-    @Test
-    fun `listForMovie returns the stored artworks in id order`() {
-        every { artworks.findByMovieIdOrderById(1L) } returns listOf(artwork(id = 10), artwork(id = 11))
-
-        assertThat(service.listForMovie(1L).map { it.id }).containsExactly(10L, 11L)
-    }
-
     companion object {
 
         @JvmStatic

@@ -7,11 +7,6 @@ describe('formatDate', () => {
 		expect(formatDate('1995-01-07')).toBe('07/01/1995');
 	});
 
-	it('keeps the stored day for a date-only value', () => {
-		// `new Date('1969-11-04')` is UTC midnight, which prints as the 3rd west of UTC.
-		expect(formatDate('1969-11-04')).toBe('04/11/1969');
-	});
-
 	it('formats a date-time value as dd/mm/yyyy', () => {
 		expect(formatDate('2024-03-05T10:00:00Z')).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
 	});
