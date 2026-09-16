@@ -31,4 +31,3 @@ Keep comments minimal.
 - Do not generate essay-style comments.
 - Do not add documentation merely because a method is new.
 - Match the existing project's commenting density and style.
--
