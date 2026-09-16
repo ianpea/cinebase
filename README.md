@@ -252,9 +252,9 @@ they need no database and leave nothing behind.
 
 ## AI usage
 
-GitHub Copilot in VS Code (agent mode) was used throughout development based on a predefined implementation plan and architecture.
+GitHub Copilot in VS Code (agent mode) was used throughout development based on a predefined implementation plan and architecture, with selected model as DeepSeek Flash.
 
-AI assisted with the initial implementation across the Spring Boot services, GraphQL and gRPC integration, Svelte frontend, Docker configuration and automated tests. Generated code was reviewed, run and refined as the application was integrated, including simplifying frontend state handling and removing low-value tests.
+AI assisted with the initial implementation across the Spring Boot services, GraphQL and gRPC integration, Svelte frontend, Docker configuration and automated tests. Generated code was **reviewed**, **run** and **refined** as the application was integrated, including simplifying frontend state handling and removing low-value tests.
 
 The final implementation was verified with **241 automated tests**, frontend type checking, a clean Docker Compose build, and manual end-to-end testing covering movie and people management, search, sorting, pagination, gRPC integration, artwork upload and removal, error handling and persistence across restarts.
 
