@@ -30,19 +30,19 @@ See [Building images](../README.md#building-images) to build every service at on
 
 The image is `cinebase-frontend` and it runs the `adapter-node` server.
 
-| Variable | Default | Purpose |
-| --- | --- | --- |
+| Variable               | Default                 | Purpose                                                                                                 |
+| ---------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------- |
 | `MOVIE_SERVICE_ORIGIN` | `http://localhost:8081` | where SSR loads and the production proxy find `movie-service` (in Compose: `http://movie-service:8081`) |
-| `ORIGIN` | — | origin `adapter-node` trusts for POST requests; Compose sets the browser-facing URL |
-| `BODY_SIZE_LIMIT` | 512 KB | `adapter-node`'s default, which is below the 10 MB artwork limit; Compose raises it to `12M` |
+| `ORIGIN`               | —                       | origin `adapter-node` trusts for POST requests; Compose sets the browser-facing URL                     |
+| `BODY_SIZE_LIMIT`      | 512 KB                  | `adapter-node`'s default, which is below the 10 MB artwork limit; Compose raises it to `12M`            |
 
 ## Pages
 
-| Route | Contents |
-| --- | --- |
-| `/` | movie grid with artwork, debounced search, sorting, pagination, add/edit dialogs, delete confirmation |
+| Route          | Contents                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------ |
+| `/`            | movie grid with artwork, debounced search, sorting, pagination, add/edit dialogs, delete confirmation        |
 | `/movies/[id]` | metadata, artwork gallery (upload with preview and progress, remove), cast and creators with add/edit/remove |
-| `/people` | people list, search, pagination, add/edit dialogs, delete confirmation |
+| `/people`      | people list, search, pagination, add/edit dialogs, delete confirmation                                       |
 
 ## How data is fetched
 
