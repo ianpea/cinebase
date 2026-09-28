@@ -68,7 +68,7 @@ Requires Docker only.
 docker compose up --build
 ```
 
-Then open <http://localhost:3000>. Compose starts PostgreSQL, both services and the frontend, and the
+Then open **http://localhost:3000**. Compose starts PostgreSQL, both services and the frontend, and the
 second database is created on first start.
 
 - `docker compose down` stops the stack and keeps the data.
